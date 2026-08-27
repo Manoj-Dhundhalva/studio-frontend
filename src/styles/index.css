@@ -1,0 +1,28 @@
+:root {
+  --app-bg: #ffffff;
+  --app-fg: #000000e0;
+}
+
+:root.dark {
+  --app-bg: #000000;
+  --app-fg: #ffffffd9;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  /* Paints the overscroll area and anything behind the layout in dark mode. */
+  background-color: var(--app-bg);
+  color: var(--app-fg);
+}
+
+#root {
+  min-height: 100dvh;
+}

@@ -5,6 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Canva</title>
+    <!--
+      Applies the persisted theme before first paint to avoid a light flash.
+      Must stay in sync with STORAGE_KEY.GLOBAL_STATE and applyThemeToDocument().
+    -->
+    <script>
+      (function () {
+        var theme;
+        try {
+          var raw = localStorage.getItem("app:global-state");
+          if (raw) theme = JSON.parse(raw).uiPreferences.theme;
+        } catch (error) {
+          /* corrupt or unavailable storage — fall through to system preference */
+        }
+        if (theme !== "light" && theme !== "dark") {
+          theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.classList.add(theme);
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

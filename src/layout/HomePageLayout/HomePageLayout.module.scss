@@ -1,0 +1,29 @@
+.homepage-layout {
+  display: flex;
+  flex-direction: column;
+  /* 100vw includes the scrollbar gutter, which is what forced the
+     `overflow-x: hidden` workaround. 100% does not. */
+  width: 100%;
+  min-height: 100dvh;
+
+  padding: 0 48px;
+
+  .header,
+  .footer {
+    padding: 0;
+    background-color: transparent;
+  }
+
+  .content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 24px 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .homepage-layout {
+    padding: 0 16px;
+  }
+}
