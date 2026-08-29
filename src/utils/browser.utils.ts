@@ -1,38 +1,25 @@
-import { getAntdStatic } from "@/lib/antd-static";
-
-/**
- * Uses antd's context-aware message instance so feedback matches the active
- * theme. Falls back to a console warning if called before the app has mounted.
- */
-function notify(type: "success" | "error", content: string): void {
-  const antd = getAntdStatic();
-
-  if (!antd) {
-    console.warn(`[notify:${type}] ${content}`);
-    return;
-  }
-
-  antd.message[type](content);
-}
+import type { MessageInstance } from "antd/es/message/interface";
 
 export class BrowserUtils {
   private static instance: BrowserUtils;
 
-  private constructor() {}
+  private readonly toast: MessageInstance;
 
-  static getInstance(): BrowserUtils {
+  private constructor(toast: MessageInstance) {
+    this.toast = toast;
+  }
+
+  static getInstance(toast: MessageInstance): BrowserUtils {
     if (!BrowserUtils.instance) {
-      BrowserUtils.instance = new BrowserUtils();
+      BrowserUtils.instance = new BrowserUtils(toast);
     }
     return BrowserUtils.instance;
   }
 
   copyToClipboard = async (text: string): Promise<boolean> => {
-    // The async Clipboard API is unavailable on insecure origins and in some
-    // webviews, hence the execCommand fallback.
     try {
       await navigator.clipboard.writeText(text);
-      notify("success", "Copied to clipboard");
+      this.toast.success("Copied to clipboard");
       return true;
     } catch {
       return this.copyViaExecCommand(text);
@@ -54,11 +41,15 @@ export class BrowserUtils {
 
       const success = document.execCommand("copy");
 
-      notify(success ? "success" : "error", success ? "Copied to clipboard" : "Failed to copy");
+      if (success) {
+        this.toast.success("Copied to clipboard");
+      } else {
+        this.toast.error("Failed to copy");
+      }
 
       return success;
     } catch {
-      notify("error", "Failed to copy");
+      this.toast.error("Failed to copy");
       return false;
     } finally {
       textarea.remove();
