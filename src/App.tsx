@@ -5,6 +5,7 @@ import { THEME } from "@/constants/ui-preferences.constants";
 import { ROUTE_PATH } from "@/constants/route.constants";
 import { useGlobalState } from "@/contexts/global";
 import HomePageLayout from "@/layout/HomePageLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { App as AntdApp, ConfigProvider, Spin, theme as antdTheme } from "antd";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
@@ -30,11 +31,13 @@ function AppRoutes() {
             <Route path={ROUTE_PATH.AUTH.CALLBACK.ROOT} element={<AuthCallbackPage />} />
             <Route path="*" element={<LoginPage />} />
           </Route>
-          <Route path="/" element={<HomePageLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path={ROUTE_PATH.PROFILE.ROOT} element={<ProfilePage />} />
-            <Route path={ROUTE_PATH.PROJECT.ROOT} element={<ProjectPage />} />
-            <Route path="*" element={<PageNotFound />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<HomePageLayout />}>
+              <Route index element={<HomePage />} />
+              <Route path={ROUTE_PATH.PROFILE.ROOT} element={<ProfilePage />} />
+              <Route path={ROUTE_PATH.PROJECT.ROOT} element={<ProjectPage />} />
+              <Route path="*" element={<PageNotFound />} />
+            </Route>
           </Route>
         </Routes>
       </Suspense>

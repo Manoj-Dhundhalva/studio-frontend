@@ -6,14 +6,10 @@ import type { MessageInstance } from "antd/es/message/interface";
 class Utils {
   private static instance: Utils;
 
-  public toast: MessageInstance;
-  public date: DateUtils;
-  public browser: BrowserUtils;
+  public readonly date: DateUtils;
 
   private constructor() {
-    this.toast = ToastUtils.getInstance();
     this.date = DateUtils.getInstance();
-    this.browser = BrowserUtils.getInstance(ToastUtils.getInstance());
   }
 
   static getInstance(): Utils {
@@ -21,6 +17,19 @@ class Utils {
       Utils.instance = new Utils();
     }
     return Utils.instance;
+  }
+
+  /**
+   * Resolved lazily (not cached in the constructor) since `Utils` is
+   * instantiated as an eager module-level singleton, which can run before
+   * `ToastUtils.initialize()` fires from `useToast()`'s effect.
+   */
+  get toast(): MessageInstance {
+    return ToastUtils.getInstance();
+  }
+
+  get browser(): BrowserUtils {
+    return BrowserUtils.getInstance(ToastUtils.getInstance());
   }
 }
 

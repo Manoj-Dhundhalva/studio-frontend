@@ -41,7 +41,7 @@ function AuthCallbackPage() {
 
     authService.setToken(token);
     void dispatch(fetchCurrentUser());
-    navigate(ROUTE_PATH.HOME.ROOT, { replace: true });
+    navigate(authService.consumePostLoginRedirect() ?? ROUTE_PATH.HOME.ROOT, { replace: true });
   }, [navigate, dispatch]);
 
   return (
