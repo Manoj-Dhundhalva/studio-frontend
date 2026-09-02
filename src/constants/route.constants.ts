@@ -5,6 +5,9 @@ export const ROUTE_PATH = {
   PROFILE: {
     ROOT: "/profile",
   },
+  PROJECT: {
+    ROOT: "/project/:projectId",
+  },
   AUTH: {
     ROOT: "/auth",
     LOGIN: {

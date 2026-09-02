@@ -1,15 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { usersService, type TUser } from "@/services/users";
 import type { RootState } from "../store";
+import { REQUEST_STATUS, type TRequestStatus } from "./request-status";
 
-export const REQUEST_STATUS = {
-  IDLE: "idle",
-  LOADING: "loading",
-  SUCCEEDED: "succeeded",
-  FAILED: "failed",
-} as const;
-
-export type TRequestStatus = (typeof REQUEST_STATUS)[keyof typeof REQUEST_STATUS];
+export { REQUEST_STATUS, type TRequestStatus };
 
 type TUserState = {
   data: TUser | null;

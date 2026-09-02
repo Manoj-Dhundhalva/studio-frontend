@@ -9,6 +9,7 @@ import { App as AntdApp, ConfigProvider, Spin, theme as antdTheme } from "antd";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
+const ProjectPage = lazy(() => import("@/pages/ProjectPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const AuthCallbackPage = lazy(() => import("@/pages/AuthCallbackPage"));
 const PageNotFound = lazy(() => import("@/components/PageNotFound"));
@@ -32,6 +33,7 @@ function AppRoutes() {
           <Route path="/" element={<HomePageLayout />}>
             <Route index element={<HomePage />} />
             <Route path={ROUTE_PATH.PROFILE.ROOT} element={<ProfilePage />} />
+            <Route path={ROUTE_PATH.PROJECT.ROOT} element={<ProjectPage />} />
             <Route path="*" element={<PageNotFound />} />
           </Route>
         </Routes>
