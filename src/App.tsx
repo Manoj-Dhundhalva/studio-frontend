@@ -5,19 +5,45 @@ import { THEME } from "@/constants/ui-preferences.constants";
 import { ROUTE_PATH } from "@/constants/route.constants";
 import { useGlobalState } from "@/contexts/global";
 import HomePageLayout from "@/layout/HomePageLayout";
-import { ConfigProvider, Spin, theme as antdTheme } from "antd";
+import { App as AntdApp, ConfigProvider, Spin, theme as antdTheme } from "antd";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const AuthCallbackPage = lazy(() => import("@/pages/AuthCallbackPage"));
 const PageNotFound = lazy(() => import("@/components/PageNotFound"));
+
+/**
+ * A child of `AntdApp`, not a sibling — `useToast` reads the message API via
+ * `App.useApp()`, which only resolves once there's an `AntdApp` ancestor.
+ */
+function AppRoutes() {
+  useToast();
+
+  return (
+    <BrowserRouter>
+      <Suspense fallback={<Spin />}>
+        <Routes>
+          <Route path={ROUTE_PATH.AUTH.ROOT} element={<HomePageLayout />}>
+            <Route index element={<LoginPage />} />
+            <Route path={ROUTE_PATH.AUTH.CALLBACK.ROOT} element={<AuthCallbackPage />} />
+            <Route path="*" element={<LoginPage />} />
+          </Route>
+          <Route path="/" element={<HomePageLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path={ROUTE_PATH.PROFILE.ROOT} element={<ProfilePage />} />
+            <Route path="*" element={<PageNotFound />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
+  );
+}
 
 function App() {
   const {
     uiPreferences: { theme },
   } = useGlobalState();
-
-  useToast();
 
   const themeConfig = useMemo(
     () => ({ algorithm: theme === THEME.DARK ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm }),
@@ -26,21 +52,9 @@ function App() {
 
   return (
     <ConfigProvider theme={themeConfig}>
-      <BrowserRouter>
-        <Suspense fallback={<Spin />}>
-          <Routes>
-            <Route path={ROUTE_PATH.AUTH.ROOT} element={<HomePageLayout />}>
-              <Route index element={<LoginPage />} />
-              <Route path={ROUTE_PATH.AUTH.CALLBACK.ROOT} element={<AuthCallbackPage />} />
-              <Route path="*" element={<LoginPage />} />
-            </Route>
-            <Route path="/" element={<HomePageLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="*" element={<PageNotFound />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <AntdApp>
+        <AppRoutes />
+      </AntdApp>
     </ConfigProvider>
   );
 }

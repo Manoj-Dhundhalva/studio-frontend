@@ -5,7 +5,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ErrorBoundary } from "react-error-boundary";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Provider as StoreProvider } from "react-redux";
 import { queryClient } from "@/lib/query-client";
+import { store } from "@/store";
 import { GlobalStateProvider } from "@/contexts/global";
 import ErrorFallback from "@/components/ErrorFallback";
 import App from "./App";
@@ -19,11 +21,13 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <QueryClientProvider client={queryClient}>
-        <GlobalStateProvider>
-          <App />
-        </GlobalStateProvider>
-      </QueryClientProvider>
+      <StoreProvider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <GlobalStateProvider>
+            <App />
+          </GlobalStateProvider>
+        </QueryClientProvider>
+      </StoreProvider>
     </ErrorBoundary>
   </StrictMode>,
 );

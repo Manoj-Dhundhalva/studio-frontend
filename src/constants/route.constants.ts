@@ -2,6 +2,9 @@ export const ROUTE_PATH = {
   HOME: {
     ROOT: "/",
   },
+  PROFILE: {
+    ROOT: "/profile",
+  },
   AUTH: {
     ROOT: "/auth",
     LOGIN: {
