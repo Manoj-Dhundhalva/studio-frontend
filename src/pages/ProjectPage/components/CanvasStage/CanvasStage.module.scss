@@ -1,0 +1,17 @@
+.stage-container {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--editor-void-bg);
+
+  /* Stops trackpad pinch and rubber-band scrolling from moving the app shell
+     while the pointer is over the canvas. */
+  touch-action: none;
+  overscroll-behavior: none;
+
+  &[data-pan-mode="true"] {
+    cursor: grab;
+  }
+}

@@ -23,6 +23,18 @@ const envSchema = z.object({
     .refine((value) => Number.isInteger(value) && value > 0, {
       message: "VITE_API_TIMEOUT must be a positive integer (milliseconds)",
     }),
+
+  /**
+   * Socket origin, declared separately rather than derived by stripping `/api`
+   * off `VITE_API_BASE_URL`. That derivation only works by coincidence locally
+   * and breaks the moment the API sits behind a path prefix, another subdomain,
+   * or a CDN that fronts REST but not WebSocket. Note `http(s)`, not `ws(s)` —
+   * socket.io takes an HTTP origin and upgrades.
+   */
+  VITE_SOCKET_URL: z.url({
+    protocol: /^https?$/,
+    error: "VITE_SOCKET_URL must be an absolute http:// or https:// URL",
+  }),
 });
 
 const result = envSchema.safeParse(import.meta.env);

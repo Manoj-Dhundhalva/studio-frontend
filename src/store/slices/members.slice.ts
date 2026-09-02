@@ -1,6 +1,6 @@
-import { createAsyncThunk, createSlice, isAnyOf } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, isAnyOf, type PayloadAction } from "@reduxjs/toolkit";
 import { projectsService } from "@/services/projects";
-import type { TMemberAccessibilityInput, TProjectMember } from "@/services/projects/projects.types";
+import type { TMemberAccessibilityInput, TProjectMember, TProjectMemberRole } from "@/services/projects/projects.types";
 import type { RootState } from "../store";
 import { REQUEST_STATUS, type TRequestStatus } from "./request-status";
 
@@ -93,7 +93,42 @@ export const removeProjectMembers = createAsyncThunk(
 const membersSlice = createSlice({
   name: "members",
   initialState,
-  reducers: {},
+  reducers: {
+    /**
+     * Applies a live `access:changed` to an already-loaded members list, so the
+     * panel reflects another admin's change without a refetch. A no-op when the
+     * member's page hasn't been loaded — the next fetch will bring the new role
+     * anyway.
+     */
+    memberAccessibilitySet: (
+      state,
+      action: PayloadAction<{ projectId: string; userId: string; accessibility: TProjectMemberRole }>,
+    ) => {
+      const { projectId, userId, accessibility } = action.payload;
+      const member = state.entities[projectId]?.data?.find((entry) => entry.userId === userId);
+
+      if (member) {
+        member.accessibility = accessibility;
+      }
+    },
+
+    /** Drops a member removed from the project while the panel was open. */
+    memberRemoved: (state, action: PayloadAction<{ projectId: string; userId: string }>) => {
+      const { projectId, userId } = action.payload;
+      const entity = state.entities[projectId];
+
+      if (!entity?.data) {
+        return;
+      }
+
+      const next = entity.data.filter((entry) => entry.userId !== userId);
+
+      if (next.length !== entity.data.length) {
+        entity.data = next;
+        entity.total = Math.max(0, entity.total - 1);
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(loadMoreProjectMembers.fulfilled, (state, action) => {
@@ -133,6 +168,8 @@ const membersSlice = createSlice({
       });
   },
 });
+
+export const { memberAccessibilitySet, memberRemoved } = membersSlice.actions;
 
 export const selectProjectMembers = (state: RootState, projectId: string): TProjectMember[] | null =>
   state.members.entities[projectId]?.data ?? null;

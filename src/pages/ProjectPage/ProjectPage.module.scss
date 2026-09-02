@@ -1,3 +1,53 @@
 .project-page {
-  padding: 32px 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.editor-body {
+  display: grid;
+  /* left rail | stage | right rail */
+  grid-template-columns: 232px 1fr 280px;
+  flex: 1 1 auto;
+  /* Load-bearing: lets the grid row shrink so the stage container can be
+     measured, instead of growing past the viewport. */
+  min-height: 0;
+  width: 100%;
+}
+
+.editor-status {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  padding: 4px 12px;
+  border-top: 1px solid var(--editor-border);
+  background-color: var(--editor-panel-bg);
+}
+
+.stage-fallback {
+  padding: 24px;
+}
+
+@media (max-width: 1200px) {
+  .editor-body {
+    grid-template-columns: 180px 1fr 240px;
+  }
+}
+
+@media (max-width: 900px) {
+  .editor-body {
+    /* Panels collapse away before the stage does — the canvas is the point. */
+    grid-template-columns: 1fr;
+  }
+
+  .editor-body > :first-child,
+  .editor-body > :last-child {
+    display: none;
+  }
 }

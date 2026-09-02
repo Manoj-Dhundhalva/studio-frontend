@@ -8,6 +8,7 @@ import HomePageLayout from "@/layout/HomePageLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { App as AntdApp, ConfigProvider, Spin, theme as antdTheme } from "antd";
 
+const EditorLayout = lazy(() => import("@/layout/EditorLayout"));
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage"));
 const ProjectPage = lazy(() => import("@/pages/ProjectPage"));
@@ -32,10 +33,14 @@ function AppRoutes() {
             <Route path="*" element={<LoginPage />} />
           </Route>
           <Route element={<ProtectedRoute />}>
+            {/* The editor gets its own full-bleed, non-scrolling shell. Pathless,
+                so ROUTE_PATH.PROJECT.ROOT stays the absolute path it already is. */}
+            <Route element={<EditorLayout />}>
+              <Route path={ROUTE_PATH.PROJECT.ROOT} element={<ProjectPage />} />
+            </Route>
             <Route path="/" element={<HomePageLayout />}>
               <Route index element={<HomePage />} />
               <Route path={ROUTE_PATH.PROFILE.ROOT} element={<ProfilePage />} />
-              <Route path={ROUTE_PATH.PROJECT.ROOT} element={<ProjectPage />} />
               <Route path="*" element={<PageNotFound />} />
             </Route>
           </Route>

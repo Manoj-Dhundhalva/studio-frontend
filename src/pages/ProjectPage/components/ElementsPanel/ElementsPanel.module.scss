@@ -1,0 +1,54 @@
+.panel {
+  height: 100%;
+  padding: 8px 4px;
+  overflow-y: auto;
+  border-right: 1px solid var(--editor-border);
+  background-color: var(--editor-panel-bg);
+}
+
+.row {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.row-label {
+  margin-left: 4px;
+}
+
+.hint {
+  font-size: 12px;
+}
+
+/* Small CSS glyphs for shapes antd has no icon for. */
+.glyph-circle,
+.glyph-triangle,
+.glyph-hexagon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+}
+
+.glyph-circle {
+  border-radius: 50%;
+}
+
+.glyph-triangle {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.glyph-hexagon {
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+
+.emoji-button {
+  height: 34px;
+  padding: 0;
+  font-size: 18px;
+}

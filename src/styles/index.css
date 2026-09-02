@@ -1,11 +1,23 @@
 :root {
   --app-bg: #ffffff;
   --app-fg: #000000e0;
+
+  /* Editor chrome. The artboard itself stays white in both themes — it's the
+     design surface, like Canva — so only the surrounding void follows the
+     theme. Konva can't read CSS vars, so the artboard fill is a constant in
+     canvas.constants.ts and this only paints the area behind the stage. */
+  --editor-void-bg: #f1f1f3;
+  --editor-panel-bg: #ffffff;
+  --editor-border: #00000014;
 }
 
 :root.dark {
   --app-bg: #000000;
   --app-fg: #ffffffd9;
+
+  --editor-void-bg: #18181b;
+  --editor-panel-bg: #0f0f11;
+  --editor-border: #ffffff1a;
 }
 
 *,

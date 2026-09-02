@@ -1,6 +1,6 @@
-import { memo, useEffect } from "react";
+import { Suspense, lazy, memo, useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Skeleton, Typography } from "antd";
+import { Flex, Skeleton, Typography } from "antd";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   REQUEST_STATUS,
@@ -9,7 +9,36 @@ import {
   selectProjectError,
   selectProjectStatus,
 } from "@/store/slices/project.slice";
+import {
+  canvasReplaced,
+  selectCanvas,
+  selectElement,
+  selectElementOrder,
+  selectPendingCount,
+  selectSelectedIds,
+  selectSyncStatus,
+} from "@/store/slices/canvas.slice";
+import { selectPresenceSockets, selectSelfSocketId } from "@/store/slices/presence.slice";
+import { PROJECT_ROLE } from "@/services/projects/projects.types";
+import { canvasService, type TAspectRatioPreset, type TElementType } from "@/services/canvas";
+import type { TCanvasElement, TElementProps } from "@/services/canvas/canvas.types";
+import { SOCKET_EVENT, socketService } from "@/services/socket";
+import type { RootState } from "@/store/store";
+import { utils } from "@/utils";
+import { buildReorder, createElementInput } from "./ProjectPage.utils";
+import { useCanvasRoom } from "./hooks/useCanvasRoom.hook";
+import { useElementMutations } from "./hooks/useElementMutations.hook";
+import ElementsPanel from "./components/ElementsPanel";
+import PropertiesPanel from "./components/PropertiesPanel";
+import SyncIndicator from "./components/SyncIndicator";
+import ViewerNotice from "./components/ViewerNotice";
 import styles from "./ProjectPage.module.scss";
+
+/**
+ * Konva is ~110KB gzipped, so the stage is split out of the page chunk too —
+ * the shell, navbar and panels paint before it downloads.
+ */
+const CanvasStage = lazy(() => import("./components/CanvasStage"));
 
 function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -43,7 +72,203 @@ function ProjectPage() {
     );
   }
 
-  return <div className={styles["project-page"]} data-testid="project-page" />;
+  // Keyed on projectId so navigating between projects remounts the editor and
+  // its room subscription rather than trying to migrate one in place.
+  return <ProjectEditor key={projectId} projectId={projectId} />;
 }
+
+type TProjectEditorProps = {
+  projectId: string;
+};
+
+function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
+  const dispatch = useAppDispatch();
+
+  const project = useAppSelector((state) => selectProject(state, projectId));
+  const canvas = useAppSelector((state) => selectCanvas(state, projectId));
+  const order = useAppSelector((state) => selectElementOrder(state, projectId));
+  const selectedIds = useAppSelector((state) => selectSelectedIds(state, projectId));
+  const syncStatus = useAppSelector((state) => selectSyncStatus(state, projectId));
+  const pendingCount = useAppSelector((state) => selectPendingCount(state, projectId));
+  const presenceSockets = useAppSelector((state) => selectPresenceSockets(state, projectId));
+  const selfSocketId = useAppSelector((state) => selectSelfSocketId(state, projectId));
+
+  /**
+   * Derived from the project's own `accessibility` — the requester's role, which
+   * `access:changed` patches in place — so a demotion takes effect without a
+   * refetch. This gates the UI only; the server re-checks every mutation.
+   */
+  const canEdit = project !== null && project.accessibility !== PROJECT_ROLE.VIEWER;
+
+  const { remoteSelections } = useCanvasRoom(projectId);
+  const { addElement, previewElement, commitElement, removeElements, reorderElements, setSelection } =
+    useElementMutations(projectId, canEdit);
+
+  const selection = useAppSelector((state: RootState) =>
+    selectedIds
+      .map((elementId) => selectElement(state, projectId, elementId))
+      .filter((element): element is TCanvasElement => element !== null),
+  );
+
+  const handleAdd = useCallback(
+    (type: TElementType, props?: TElementProps) => {
+      if (!canvas) {
+        return;
+      }
+
+      addElement(createElementInput(type, canvas, props ? { props } : undefined, order.length));
+    },
+    [addElement, canvas, order.length],
+  );
+
+  const handleDelete = useCallback(() => {
+    removeElements([...selectedIds]);
+  }, [removeElements, selectedIds]);
+
+  const handleReorder = useCallback(
+    (direction: "front" | "back") => {
+      reorderElements(buildReorder(order, selectedIds, direction));
+    },
+    [reorderElements, order, selectedIds],
+  );
+
+  const handleResize = useCallback(
+    (width: number, height: number, preset: TAspectRatioPreset) => {
+      socketService.emit(
+        SOCKET_EVENT.CLIENT.CANVAS_RESIZE,
+        { projectId, width, height, aspectRatioPreset: preset },
+        (result) => {
+          if (!result.ok) {
+            utils.toast.error(result.error);
+            return;
+          }
+
+          /**
+           * Applied from the ack, not from the broadcast: `canvas:resized` is
+           * filtered out for its own originating socket (echo suppression), so
+           * without this the resizing user is the one person who never sees
+           * their own resize.
+           */
+          dispatch(canvasReplaced({ projectId, canvas: result.data.canvas }));
+        },
+      );
+    },
+    [dispatch, projectId],
+  );
+
+  const handleBackgroundChange = useCallback(
+    (color: string) => {
+      // Background has no socket event of its own — the REST path writes through
+      // the same server cache and broadcasts the result to live editors.
+      void canvasService
+        .updateCanvas(projectId, { backgroundColor: color })
+        .then((updated) => {
+          dispatch(canvasReplaced({ projectId, canvas: updated }));
+        })
+        .catch((updateError: unknown) => {
+          utils.toast.error(updateError instanceof Error ? updateError.message : "Failed to update background");
+        });
+    },
+    [dispatch, projectId],
+  );
+
+  // Delete / Escape, and arrow-key nudging.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target;
+
+      // Never hijack keys while the user is typing in a panel input.
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        setSelection([]);
+        return;
+      }
+
+      if (!canEdit || selectedIds.length === 0) {
+        return;
+      }
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        removeElements([...selectedIds]);
+        return;
+      }
+
+      const nudge = event.shiftKey ? 10 : 1;
+      const deltas: Record<string, { x: number; y: number }> = {
+        ArrowUp: { x: 0, y: -nudge },
+        ArrowDown: { x: 0, y: nudge },
+        ArrowLeft: { x: -nudge, y: 0 },
+        ArrowRight: { x: nudge, y: 0 },
+      };
+      const delta = deltas[event.key];
+
+      if (!delta) {
+        return;
+      }
+
+      event.preventDefault();
+      selection.forEach((element) => {
+        commitElement(element.elementId, { x: element.x + delta.x, y: element.y + delta.y });
+      });
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [canEdit, selectedIds, selection, removeElements, commitElement, setSelection, dispatch]);
+
+  const canvasSizeProps = useMemo(
+    () => (canvas ? { canvas, canEdit, onResize: handleResize, onBackgroundChange: handleBackgroundChange } : null),
+    [canvas, canEdit, handleResize, handleBackgroundChange],
+  );
+
+  if (!canvas || !canvasSizeProps) {
+    return <Skeleton active className={styles["project-page"] ?? ""} data-testid="canvas-loading" />;
+  }
+
+  return (
+    <Flex vertical className={styles["editor"] ?? ""} data-testid="project-page">
+      {!canEdit && <ViewerNotice />}
+
+      <div className={styles["editor-body"] ?? ""}>
+        <ElementsPanel canEdit={canEdit} onAdd={handleAdd} />
+
+        <Suspense fallback={<Skeleton active className={styles["stage-fallback"] ?? ""} />}>
+          <CanvasStage
+            projectId={projectId}
+            canvas={canvas}
+            canEdit={canEdit}
+            selectedIds={selectedIds}
+            remoteSelections={remoteSelections}
+            presenceSockets={presenceSockets}
+            selfSocketId={selfSocketId}
+            onSelect={setSelection}
+            onPreview={previewElement}
+            onCommit={commitElement}
+          />
+        </Suspense>
+
+        <PropertiesPanel
+          canEdit={canEdit}
+          selection={selection}
+          onCommit={commitElement}
+          onDelete={handleDelete}
+          onReorder={handleReorder}
+          canvasSizeProps={canvasSizeProps}
+        />
+      </div>
+
+      <div className={styles["editor-status"] ?? ""}>
+        <SyncIndicator status={syncStatus} pendingCount={pendingCount} />
+      </div>
+    </Flex>
+  );
+}
+
+const ProjectEditor = memo(ProjectEditorComponent);
 
 export default memo(ProjectPage);

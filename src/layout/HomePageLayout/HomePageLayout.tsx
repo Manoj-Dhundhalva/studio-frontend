@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import { Layout } from "antd";
 import ErrorFallback from "@/components/ErrorFallback";
-import Navbar from "./components/Navbar";
+import Navbar from "@/layout/Navbar";
 import Footer from "./components/Footer";
 import styles from "./HomePageLayout.module.scss";
 

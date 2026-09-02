@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { projectsService } from "@/services/projects";
-import type { TProjectDetail } from "@/services/projects/projects.types";
+import type { TProjectDetail, TProjectMemberRole } from "@/services/projects/projects.types";
 import type { RootState } from "../store";
 import { REQUEST_STATUS, type TRequestStatus } from "./request-status";
 
@@ -47,6 +47,25 @@ const projectSlice = createSlice({
     resetProject: (state, action: PayloadAction<string>) => {
       delete state.entities[action.payload];
     },
+
+    /**
+     * Applies a live `access:changed` to the requester's own role.
+     *
+     * `accessibility` here is the *viewer's* role on this project — the same
+     * field `ProjectMembersPanel` already trusts for its admin check — so
+     * patching it in place is what makes a demotion take effect mid-session
+     * without a refetch and without a second source of truth.
+     */
+    projectAccessibilitySet: (
+      state,
+      action: PayloadAction<{ projectId: string; accessibility: TProjectMemberRole }>,
+    ) => {
+      const entity = state.entities[action.payload.projectId];
+
+      if (entity?.data) {
+        entity.data.accessibility = action.payload.accessibility;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -91,7 +110,7 @@ const projectSlice = createSlice({
   },
 });
 
-export const { resetProject } = projectSlice.actions;
+export const { resetProject, projectAccessibilitySet } = projectSlice.actions;
 
 export const selectProject = (state: RootState, projectId: string): TProjectDetail | null =>
   state.projects.entities[projectId]?.data ?? null;

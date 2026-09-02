@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+/** Declared first: the schemas below reference it at module-evaluation time. */
+export const ProjectMemberRoleSchema = z.enum(["admin", "editor", "viewer"]);
+
+export type TProjectMemberRole = z.infer<typeof ProjectMemberRoleSchema>;
+
+export const PROJECT_ROLE = {
+  ADMIN: "admin",
+  EDITOR: "editor",
+  VIEWER: "viewer",
+} as const;
+
 export const ProjectSchema = z.object({
   projectId: z.string(),
 });
@@ -22,7 +33,9 @@ export const ProjectsListSchema = z.object({
 export const ProjectDetailSchema = z.object({
   projectId: z.string(),
   projectName: z.string(),
-  accessibility: z.string(),
+  // The requester's own role on this project. Typed as the enum rather than a
+  // bare string so `canEdit` and the live `access:changed` patch line up.
+  accessibility: ProjectMemberRoleSchema,
 });
 
 export type TProjectDetail = z.infer<typeof ProjectDetailSchema>;
@@ -39,10 +52,6 @@ export const ProjectNameSchema = z
   .trim()
   .min(1, "Project name is required")
   .max(100, "Project name must be at most 100 characters");
-
-export const ProjectMemberRoleSchema = z.enum(["admin", "editor", "viewer"]);
-
-export type TProjectMemberRole = z.infer<typeof ProjectMemberRoleSchema>;
 
 export const ProjectMemberSchema = z.object({
   userId: z.string(),

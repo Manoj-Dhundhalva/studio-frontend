@@ -1,0 +1,25 @@
+.panel {
+  height: 100%;
+  padding: 16px 12px;
+  overflow-y: auto;
+  border-left: 1px solid var(--editor-border);
+  background-color: var(--editor-panel-bg);
+}
+
+.divider {
+  margin: 0;
+}
+
+.slider {
+  flex: 1;
+}
+
+.field-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.field-input {
+  flex: 1;
+  min-width: 0;
+}

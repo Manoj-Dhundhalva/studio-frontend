@@ -1,0 +1,18 @@
+.toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border: 1px solid var(--editor-border);
+  border-radius: 999px;
+  background-color: var(--editor-panel-bg);
+  box-shadow: 0 2px 12px #00000014;
+}
+
+.zoom-label {
+  min-width: 44px;
+  font-size: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

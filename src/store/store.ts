@@ -2,12 +2,16 @@ import { configureStore } from "@reduxjs/toolkit";
 import userReducer from "./slices/user.slice";
 import projectsReducer from "./slices/project.slice";
 import membersReducer from "./slices/members.slice";
+import canvasReducer from "./slices/canvas.slice";
+import presenceReducer from "./slices/presence.slice";
 
 export const store = configureStore({
   reducer: {
     user: userReducer,
     projects: projectsReducer,
     members: membersReducer,
+    canvas: canvasReducer,
+    presence: presenceReducer,
   },
 });
 
