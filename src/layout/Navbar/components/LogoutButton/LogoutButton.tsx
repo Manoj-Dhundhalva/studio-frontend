@@ -25,6 +25,7 @@ function LogoutButton() {
         variant="filled"
         icon={<LogoutOutlined />}
         onClick={handleLogout}
+        aria-label="Logout"
         data-testid="logout-button"
       />
     </Tooltip>

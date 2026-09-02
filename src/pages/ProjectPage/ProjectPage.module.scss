@@ -34,6 +34,10 @@
   padding: 24px;
 }
 
+.error-state {
+  padding: 48px 0;
+}
+
 @media (max-width: 1200px) {
   .editor-body {
     grid-template-columns: 180px 1fr 240px;

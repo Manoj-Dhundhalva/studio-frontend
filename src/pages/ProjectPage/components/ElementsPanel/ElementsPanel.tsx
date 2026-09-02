@@ -12,7 +12,7 @@ import {
   StarOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { ELEMENT_TYPE, EMOJI_GLYPHS, type TElementType } from "@/services/canvas/canvas.constants";
+import { ELEMENT_TYPE, EMOJI_ICONS, type TElementType } from "@/services/canvas/canvas.constants";
 import type { TElementProps } from "@/services/canvas/canvas.types";
 import type { TProjectMedia } from "@/services/media/media.types";
 import type { TPendingMediaUpload } from "../../hooks/useMediaLibrary.hook";
@@ -61,33 +61,6 @@ const TOOLS: TTool[] = [
   { key: "image", label: "Image", icon: <PictureOutlined /> },
   { key: "uploads", label: "Uploads", icon: <UploadOutlined /> },
 ];
-
-const ICON_LABELS = [
-  "star",
-  "heart",
-  "fire",
-  "sparkles",
-  "celebration",
-  "idea",
-  "check",
-  "cross",
-  "lightning",
-  "rocket",
-  "rainbow",
-  "clover",
-  "sun",
-  "moon",
-  "cloud",
-  "target",
-  "trophy",
-  "art",
-  "pin",
-  "bell",
-  "comment",
-  "thumbs up",
-  "clap",
-  "raised hands",
-] as const;
 
 const fuzzyMatches = (value: string, query: string): boolean => {
   let valueIndex = 0;
@@ -157,10 +130,9 @@ function ElementsPanel({
   };
 
   const filteredShapes = SHAPE_ROWS.filter((row) => fuzzyMatches(row.label, shapeSearch.trim()));
-  const filteredIcons = EMOJI_GLYPHS.map((glyph, index) => ({
-    glyph,
-    label: ICON_LABELS[index] ?? glyph,
-  })).filter((option) => fuzzyMatches(`${option.label} ${option.glyph}`, iconSearch.trim()));
+  const filteredIcons = EMOJI_ICONS.filter((option) =>
+    fuzzyMatches(`${option.label} ${option.glyph}`, iconSearch.trim()),
+  );
 
   return (
     <div className={styles["panel"] ?? ""} data-testid="elements-panel">
@@ -354,6 +326,7 @@ function ElementsPanel({
                           <Button
                             size="small"
                             type="text"
+                            danger
                             className={styles["media-delete"] ?? ""}
                             icon={<DeleteOutlined />}
                             onClick={(event) => event.stopPropagation()}

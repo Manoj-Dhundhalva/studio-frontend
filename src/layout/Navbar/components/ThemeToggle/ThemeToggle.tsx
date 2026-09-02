@@ -16,6 +16,7 @@ function ThemeToggle() {
       variant="filled"
       icon={isDark ? <SunOutlined /> : <MoonOutlined />}
       onClick={toggleTheme}
+      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
     />
   );
 }

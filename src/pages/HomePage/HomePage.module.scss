@@ -1,0 +1,78 @@
+.page {
+  width: 100%;
+}
+
+.title {
+  margin: 0 !important;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background-color: var(--editor-panel-bg);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent-color);
+    box-shadow: 0 2px 12px #00000014;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+  }
+}
+
+.card-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  font-size: 32px;
+  color: var(--app-fg);
+  opacity: 0.25;
+  background-color: var(--editor-void-bg);
+}
+
+.card-body {
+  padding: 10px 12px 12px;
+  min-width: 0;
+}
+
+.card-name {
+  min-width: 0;
+}
+
+.card-tag {
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.card-date {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.state {
+  padding: 48px 0;
+}
+
+.empty-icon {
+  font-size: 32px;
+  opacity: 0.35;
+}

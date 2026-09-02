@@ -1,5 +1,17 @@
 import { memo, useState } from "react";
-import { Button, ColorPicker, Divider, Flex, InputNumber, Segmented, Select, Slider, Tooltip, Typography } from "antd";
+import {
+  Button,
+  ColorPicker,
+  Divider,
+  Flex,
+  InputNumber,
+  Popconfirm,
+  Segmented,
+  Select,
+  Slider,
+  Tooltip,
+  Typography,
+} from "antd";
 import { DeleteOutlined, VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from "@ant-design/icons";
 import { ELEMENT_TYPE, FONT_FAMILIES, TEXT_ALIGN, type TTextAlign } from "@/services/canvas/canvas.constants";
 import type { TCanvasElement, TElementPatch } from "@/services/canvas/canvas.types";
@@ -95,6 +107,7 @@ function PropertiesPanel({
           <Flex vertical gap={8}>
             <Typography.Text type="secondary">{isStroked ? "Color" : "Fill"}</Typography.Text>
             <ColorPicker
+              size="small"
               value={isStroked ? primary.stroke : primary.fill}
               disabled={!canEdit}
               showText
@@ -109,6 +122,7 @@ function PropertiesPanel({
             <Typography.Text type="secondary">Border</Typography.Text>
             <Flex align="center" gap={8}>
               <ColorPicker
+                size="small"
                 value={primary.stroke ?? "#000000"}
                 disabled={!canEdit}
                 onChangeComplete={(color) => commitAll({ stroke: toHex(color) })}
@@ -289,6 +303,7 @@ function PropertiesPanel({
               disabled={!canEdit}
               icon={<VerticalAlignTopOutlined />}
               onClick={() => onReorder("front")}
+              aria-label="Bring to front"
               data-testid="bring-to-front"
             />
           </Tooltip>
@@ -298,19 +313,21 @@ function PropertiesPanel({
               disabled={!canEdit}
               icon={<VerticalAlignBottomOutlined />}
               onClick={() => onReorder("back")}
+              aria-label="Send to back"
               data-testid="send-to-back"
             />
           </Tooltip>
-          <Button
-            size="small"
-            danger
+          <Popconfirm
+            title={isMulti ? `Delete ${selection.length} elements?` : "Delete this element?"}
+            onConfirm={onDelete}
+            okText="Delete"
+            cancelText="Cancel"
             disabled={!canEdit}
-            icon={<DeleteOutlined />}
-            onClick={onDelete}
-            data-testid="delete-element"
           >
-            Delete
-          </Button>
+            <Button size="small" danger disabled={!canEdit} icon={<DeleteOutlined />} data-testid="delete-element">
+              Delete
+            </Button>
+          </Popconfirm>
         </Flex>
       </Flex>
     </div>

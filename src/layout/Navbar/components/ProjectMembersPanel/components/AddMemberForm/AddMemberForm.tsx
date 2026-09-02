@@ -99,6 +99,7 @@ function AddMemberForm({ projectId, existingMemberIds, onDone }: TAddMemberFormP
   return (
     <Flex vertical gap={8} className={styles["form"]} data-testid="add-member-form">
       <Input
+        size="small"
         placeholder="Search by username or email"
         value={query}
         onChange={(event) => handleQueryChange(event.target.value)}

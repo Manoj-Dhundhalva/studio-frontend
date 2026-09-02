@@ -22,13 +22,21 @@ function UserAvatar() {
 
   return (
     <Tooltip title={user?.username ?? "Profile"}>
-      <Avatar
-        className={styles["avatar"] ?? ""}
-        src={user?.avatarUrl}
-        icon={<UserOutlined />}
+      <span
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
+        onKeyDown={(event: React.KeyboardEvent) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleClick();
+          }
+        }}
+        aria-label={user?.username ? `${user.username}'s profile` : "Profile"}
         data-testid="user-avatar"
-      />
+      >
+        <Avatar className={styles["avatar"] ?? ""} src={user?.avatarUrl} icon={<UserOutlined />} />
+      </span>
     </Tooltip>
   );
 }

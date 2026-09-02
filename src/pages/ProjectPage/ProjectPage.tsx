@@ -1,6 +1,6 @@
 import { Suspense, lazy, memo, useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Flex, Skeleton, Typography } from "antd";
+import { Button, Flex, Skeleton, Typography } from "antd";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   REQUEST_STATUS,
@@ -69,9 +69,12 @@ function ProjectPage() {
 
   if (status === REQUEST_STATUS.FAILED && !project) {
     return (
-      <Typography.Text type="danger" data-testid="project-error">
-        {error ?? "Failed to load project."}
-      </Typography.Text>
+      <Flex vertical align="center" gap={8} className={styles["error-state"] ?? ""} data-testid="project-error">
+        <Typography.Text type="danger">{error ?? "Failed to load project."}</Typography.Text>
+        <Button type="link" onClick={() => void dispatch(fetchProject(projectId))}>
+          Retry
+        </Button>
+      </Flex>
     );
   }
 

@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from "react";
 import { Transformer } from "react-konva";
 import type Konva from "konva";
 import type { Box } from "konva/lib/shapes/Transformer";
-import { ELEMENT_TYPE, MIN_ELEMENT_SIZE } from "@/services/canvas/canvas.constants";
+import { ELEMENT_TYPE, MIN_ELEMENT_SIZE, SELECTION_ACCENT_COLOR } from "@/services/canvas/canvas.constants";
 import type { TCanvasElement } from "@/services/canvas/canvas.types";
 
 export type TSelectionTransformerProps = {
@@ -62,8 +62,8 @@ function SelectionTransformer({
       rotationSnapTolerance={4}
       anchorSize={9}
       anchorCornerRadius={5}
-      anchorStroke="#1677ff"
-      borderStroke="#1677ff"
+      anchorStroke={SELECTION_ACCENT_COLOR}
+      borderStroke={SELECTION_ACCENT_COLOR}
       borderStrokeWidth={1.5}
       padding={2}
       boundBoxFunc={boundBoxFunc}

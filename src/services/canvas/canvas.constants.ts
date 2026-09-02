@@ -66,6 +66,13 @@ export type TSyncStatus = (typeof SYNC_STATUS)[keyof typeof SYNC_STATUS];
 /** Smallest an element may be resized to, in canvas pixels. */
 export const MIN_ELEMENT_SIZE = 8;
 
+/**
+ * The app's accent blue — mirrors `--accent-color` in `src/styles/index.css`.
+ * Konva shapes can't read CSS custom properties, so this is the one place
+ * that duplicates the value for canvas-rendered UI (selection outlines, etc).
+ */
+export const SELECTION_ACCENT_COLOR = "#1677ff";
+
 export const DEFAULT_CANVAS = {
   width: 1080,
   height: 1080,
@@ -120,29 +127,30 @@ export const FONT_FAMILIES = [
   "Comic Sans MS, cursive",
 ] as const;
 
-export const EMOJI_GLYPHS = [
-  "⭐",
-  "❤️",
-  "🔥",
-  "✨",
-  "🎉",
-  "💡",
-  "✅",
-  "❌",
-  "⚡",
-  "🚀",
-  "🌈",
-  "🍀",
-  "☀️",
-  "🌙",
-  "☁️",
-  "🎯",
-  "🏆",
-  "🎨",
-  "📌",
-  "🔔",
-  "💬",
-  "👍",
-  "👏",
-  "🙌",
+/** Paired rather than two parallel arrays, so a glyph and its label can never drift out of sync. */
+export const EMOJI_ICONS = [
+  { glyph: "⭐", label: "star" },
+  { glyph: "❤️", label: "heart" },
+  { glyph: "🔥", label: "fire" },
+  { glyph: "✨", label: "sparkles" },
+  { glyph: "🎉", label: "celebration" },
+  { glyph: "💡", label: "idea" },
+  { glyph: "✅", label: "check" },
+  { glyph: "❌", label: "cross" },
+  { glyph: "⚡", label: "lightning" },
+  { glyph: "🚀", label: "rocket" },
+  { glyph: "🌈", label: "rainbow" },
+  { glyph: "🍀", label: "clover" },
+  { glyph: "☀️", label: "sun" },
+  { glyph: "🌙", label: "moon" },
+  { glyph: "☁️", label: "cloud" },
+  { glyph: "🎯", label: "target" },
+  { glyph: "🏆", label: "trophy" },
+  { glyph: "🎨", label: "art" },
+  { glyph: "📌", label: "pin" },
+  { glyph: "🔔", label: "bell" },
+  { glyph: "💬", label: "comment" },
+  { glyph: "👍", label: "thumbs up" },
+  { glyph: "👏", label: "clap" },
+  { glyph: "🙌", label: "raised hands" },
 ] as const;

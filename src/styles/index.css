@@ -9,6 +9,12 @@
   --editor-void-bg: #f1f1f3;
   --editor-panel-bg: #ffffff;
   --editor-border: #00000014;
+
+  /* antd's default primary blue. Same value in both themes (it's already
+     tuned for contrast against light and dark surfaces) — defined once here
+     so selection outlines, active states, and progress fills stay in sync
+     with each other and with antd's own theme instead of drifting. */
+  --accent-color: #1677ff;
 }
 
 :root.dark {
