@@ -4,6 +4,8 @@ import { Spin } from "antd";
 import { authService } from "@/services/auth";
 import { ROUTE_PATH } from "@/constants/route.constants";
 import { utils } from "@/utils";
+import { useAppDispatch } from "@/store";
+import { fetchCurrentUser } from "@/store/slices/user.slice";
 import styles from "./AuthCallbackPage.module.scss";
 
 /**
@@ -18,6 +20,7 @@ function readAccessToken(hash: string): string | null {
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   // Effects run twice under StrictMode in dev; without this guard the second
   // run would find the token already consumed from the hash and misreport a
@@ -37,8 +40,9 @@ function AuthCallbackPage() {
     }
 
     authService.setToken(token);
+    void dispatch(fetchCurrentUser());
     navigate(ROUTE_PATH.HOME.ROOT, { replace: true });
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
   return (
     <div className={styles["auth-callback-page"]}>
