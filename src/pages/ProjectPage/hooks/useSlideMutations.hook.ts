@@ -222,6 +222,10 @@ export const useSlideMutations = (projectId: string, canEdit: boolean): TUseSlid
         return;
       }
 
+      // Fire-and-forget, independent of hydration below — peers need to know
+      // which slide this socket is on even when it's already cached locally.
+      socketService.emit(SOCKET_EVENT.CLIENT.PRESENCE_ACTIVE_SLIDE, { projectId, canvasId });
+
       if (selectHasSlideEntity(state, canvasId)) {
         dispatch(activeSlideChanged({ projectId, canvasId }));
         return;

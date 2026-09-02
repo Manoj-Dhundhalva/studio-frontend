@@ -94,6 +94,21 @@ const presenceSlice = createSlice({
       state.entities[projectId] = entity;
     },
 
+    presenceActiveSlideChanged: (
+      state,
+      action: PayloadAction<{ projectId: string; socketId: string; canvasId: string }>,
+    ) => {
+      const { projectId, socketId, canvasId } = action.payload;
+      const entity = getEntity(state, projectId);
+      const member = entity.bySocketId[socketId];
+
+      if (member) {
+        member.activeCanvasId = canvasId;
+      }
+
+      state.entities[projectId] = entity;
+    },
+
     selfSocketIdSet: (state, action: PayloadAction<{ projectId: string; socketId: string }>) => {
       const entity = getEntity(state, action.payload.projectId);
 
@@ -107,8 +122,15 @@ const presenceSlice = createSlice({
   },
 });
 
-export const { presenceSynced, presenceJoined, presenceLeft, presenceRoleChanged, selfSocketIdSet, presenceReset } =
-  presenceSlice.actions;
+export const {
+  presenceSynced,
+  presenceJoined,
+  presenceLeft,
+  presenceRoleChanged,
+  presenceActiveSlideChanged,
+  selfSocketIdSet,
+  presenceReset,
+} = presenceSlice.actions;
 
 const EMPTY_MEMBERS: readonly TPresenceMember[] = Object.freeze([]);
 

@@ -1,13 +1,23 @@
 import { memo, useCallback, useEffect, useRef } from "react";
-import { Group, Label, Layer, Line, Tag, Text } from "react-konva";
+import { Group, Label, Layer, Path, Tag, Text } from "react-konva";
 import type Konva from "konva";
 import { cursorStore } from "@/services/socket";
 import type { TPresenceMember } from "@/services/socket/socket.types";
+
+/** Custom cursor icon, authored in a 512x512 SVG viewBox. */
+const CURSOR_ICON_PATH =
+  "M 91 66 C 76 70, 66 82, 65 98 C 64 105, 66 114, 69 122 L 188 423 C 195 441, 208 448, 226 449 C 244 450, 260 440, 268 423 L 305 333 C 311 319, 319 309, 333 302 L 423 264 C 441 256, 450 245, 450 226 C 450 209, 441 195, 425 187 L 108 67 C 102 65, 96 64, 91 66 Z";
+// The icon's own tip (its `M` start point) and a scale bringing its ~385-unit
+// bounding box down to a normal on-screen cursor size.
+const CURSOR_ICON_TIP = { x: 91, y: 66 };
+const CURSOR_ICON_SCALE = 0.06;
 
 export type TRemoteCursorsLayerProps = {
   /** One entry per remote socket — two tabs of one person are two cursors. */
   members: readonly TPresenceMember[];
   selfSocketId: string | null;
+  /** This viewer's own active slide — only cursors on the same slide are shown. */
+  canvasId: string;
   /** Inverse stage scale, so labels stay a constant size on screen. */
   inverseScale: number;
 };
@@ -21,7 +31,7 @@ export type TRemoteCursorsLayerProps = {
  * frame: a moving cursor repaints this one non-listening canvas and nothing
  * else.
  */
-function RemoteCursorsLayer({ members, selfSocketId, inverseScale }: TRemoteCursorsLayerProps) {
+function RemoteCursorsLayer({ members, selfSocketId, canvasId, inverseScale }: TRemoteCursorsLayerProps) {
   const layerRef = useRef<Konva.Layer | null>(null);
   const groupsRef = useRef<Map<string, Konva.Group>>(new Map());
 
@@ -75,7 +85,7 @@ function RemoteCursorsLayer({ members, selfSocketId, inverseScale }: TRemoteCurs
   return (
     <Layer ref={layerRef} listening={false}>
       {members
-        .filter((member) => member.socketId !== selfSocketId)
+        .filter((member) => member.socketId !== selfSocketId && member.activeCanvasId === canvasId)
         .map((member) => (
           <Group
             key={member.socketId}
@@ -84,16 +94,19 @@ function RemoteCursorsLayer({ members, selfSocketId, inverseScale }: TRemoteCurs
             scaleY={inverseScale}
             visible={false}
           >
-            {/* A simple arrow head, drawn in screen-constant units. */}
-            <Line
-              points={[0, 0, 0, 18, 5, 13, 11, 20, 14, 17, 8, 11, 14, 10]}
-              closed
+            <Path
+              data={CURSOR_ICON_PATH}
+              offsetX={CURSOR_ICON_TIP.x}
+              offsetY={CURSOR_ICON_TIP.y}
+              scaleX={CURSOR_ICON_SCALE}
+              scaleY={CURSOR_ICON_SCALE}
               fill={member.color}
               stroke="#ffffff"
               strokeWidth={1}
+              strokeScaleEnabled={false}
               perfectDrawEnabled={false}
             />
-            <Label x={14} y={18}>
+            <Label x={20} y={22}>
               <Tag fill={member.color} cornerRadius={3} />
               <Text
                 text={member.username}

@@ -20,6 +20,8 @@ export type TPresenceMember = {
   avatarUrl: string | null;
   accessibility: TProjectMemberRole;
   color: string;
+  /** The slide this socket currently has open — lets peers scope cursors to a shared slide. */
+  activeCanvasId: string;
 };
 
 export type TAck<T> = { ok: true; data: T } | { ok: false; code: TSocketErrorCode; error: string };
@@ -42,6 +44,7 @@ export type TServerToClientEvents = {
 
   "cursor:moved": (payload: { projectId: string; socketId: string; userId: string; x: number; y: number }) => void;
   "selection:changed": (payload: { projectId: string; socketId: string; elementIds: string[] }) => void;
+  "presence:activeSlideChanged": (payload: { projectId: string; socketId: string; canvasId: string }) => void;
 
   "slide:created": (payload: {
     projectId: string;
@@ -99,6 +102,7 @@ export type TClientToServerEvents = {
 
   "cursor:move": (payload: { projectId: string; x: number; y: number }) => void;
   "selection:change": (payload: { projectId: string; elementIds: string[] }) => void;
+  "presence:activeSlide": (payload: { projectId: string; canvasId: string }) => void;
 
   "slide:activate": (
     payload: { projectId: string; canvasId: string },

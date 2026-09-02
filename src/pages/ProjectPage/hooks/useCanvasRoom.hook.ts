@@ -27,6 +27,7 @@ import {
   slidesReset,
 } from "@/store/slices/slides.slice";
 import {
+  presenceActiveSlideChanged,
   presenceJoined,
   presenceLeft,
   presenceReset,
@@ -118,6 +119,13 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
           delete next[payload.socketId];
           return next;
         });
+      }),
+    );
+
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.PRESENCE_ACTIVE_SLIDE_CHANGED, (payload) => {
+        if (payload.projectId !== projectId) return;
+        dispatch(presenceActiveSlideChanged({ projectId, socketId: payload.socketId, canvasId: payload.canvasId }));
       }),
     );
 

@@ -1,5 +1,5 @@
-import { memo, useCallback, useMemo, useRef } from "react";
-import { Layer, Rect, Stage } from "react-konva";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { Group, Layer, Rect, Stage } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useAppSelector } from "@/store";
@@ -61,6 +61,7 @@ function CanvasStage({
 
   /** Live element id -> Konva node, read by the transformer. */
   const nodeRegistryRef = useRef<Map<string, Konva.Group>>(new Map());
+  const stageRef = useRef<Konva.Stage | null>(null);
 
   // Stable, so passing it to a memoized `ElementNode` causes no render churn.
   const registerNode = useCallback((elementId: string, node: Konva.Group | null) => {
@@ -81,22 +82,35 @@ function CanvasStage({
     [projectId],
   );
 
-  const handlePointerMove = useCallback(
-    (event: KonvaEventObject<PointerEvent>) => {
-      const stage = event.target.getStage();
+  // Bound natively on the container rather than via the Stage's
+  // `onPointerMove` prop: Konva globally suppresses its own synthetic
+  // pointermove dispatch for the entire duration ANY node on the stage is
+  // being dragged or transformed (see Stage's `_pointermove`, gated on
+  // `Konva.isDragging() || Konva.isTransforming()`). That made a dragging
+  // user's cursor broadcast freeze mid-gesture and jump on release. The
+  // native listener isn't subject to that gate; `setPointersPositions`
+  // keeps Konva's own pointer tracking correct underneath the gate, so
+  // `toCanvasPoint` still reads the right position mid-drag.
+  useEffect(() => {
+    const container = containerRef.current;
+    const stage = stageRef.current;
 
-      if (!stage) {
-        return;
-      }
+    if (!container || !stage) {
+      return;
+    }
 
+    const handleNativePointerMove = (event: PointerEvent): void => {
+      stage.setPointersPositions(event);
       const point = toCanvasPoint(stage);
 
       if (point) {
         broadcastCursor(point.x, point.y);
       }
-    },
-    [broadcastCursor],
-  );
+    };
+
+    container.addEventListener("pointermove", handleNativePointerMove);
+    return () => container.removeEventListener("pointermove", handleNativePointerMove);
+  }, [broadcastCursor, containerRef]);
 
   const handleElementSelect = useCallback(
     (elementId: string, isAdditive: boolean) => {
@@ -131,6 +145,7 @@ function CanvasStage({
       data-pan-mode={isPanMode ? "true" : "false"}
     >
       <Stage
+        ref={stageRef}
         width={viewport.width}
         height={viewport.height}
         scaleX={scale}
@@ -139,7 +154,6 @@ function CanvasStage({
         y={pan.y}
         draggable={isPanMode}
         onWheel={handleWheel}
-        onPointerMove={handlePointerMove}
         onMouseDown={handleStageMouseDown}
         onTouchStart={handleStageMouseDown}
         onDragEnd={handleStageDragEnd}
@@ -159,22 +173,26 @@ function CanvasStage({
           />
         </Layer>
 
-        {/* 2. Content. Deliberately NOT clipped to the artboard — like Canva's
-               pasteboard, an element can sit partly or fully outside the page
-               and stay visible in the editor; only a render/export would crop it. */}
+        {/* 2. Content. An element's position/size is never clamped — it can be
+               dragged or resized fully outside the page, like Canva. What's
+               clipped here is only the paint: this Group crops rendering to
+               the artboard rect, so an element hanging off the edge shows just
+               its overlapping portion, same as Canva's page boundary. */}
         <Layer>
-          {order.map((elementId) => (
-            <ElementNode
-              key={elementId}
-              canvasId={canvasId}
-              elementId={elementId}
-              canEdit={canEdit}
-              onSelect={handleElementSelect}
-              onPreview={onPreview}
-              onCommit={onCommit}
-              registerNode={registerNode}
-            />
-          ))}
+          <Group clipX={0} clipY={0} clipWidth={canvas.width} clipHeight={canvas.height}>
+            {order.map((elementId) => (
+              <ElementNode
+                key={elementId}
+                canvasId={canvasId}
+                elementId={elementId}
+                canEdit={canEdit}
+                onSelect={handleElementSelect}
+                onPreview={onPreview}
+                onCommit={onCommit}
+                registerNode={registerNode}
+              />
+            ))}
+          </Group>
         </Layer>
 
         {/* 3. Overlay. The transformer redraws every frame during a gesture, so
@@ -202,6 +220,7 @@ function CanvasStage({
         <RemoteCursorsLayer
           members={presenceSockets}
           selfSocketId={selfSocketId}
+          canvasId={canvasId}
           inverseScale={scale === 0 ? 1 : 1 / scale}
         />
       </Stage>
