@@ -1,5 +1,5 @@
 import { api } from "@/services/api";
-import { UserSchema, type TUser } from "./users.types";
+import { SearchUsersResponseSchema, UserSchema, type TSearchUser, type TUser } from "./users.types";
 
 class UsersService {
   private static instance: UsersService;
@@ -21,6 +21,14 @@ class UsersService {
   updateUsername = async (username: string): Promise<TUser> => {
     const { data } = await api.patch("/users/me/username", { username });
     return UserSchema.parse(data);
+  };
+
+  searchUsers = async (q: string, options?: { signal?: AbortSignal }): Promise<TSearchUser[]> => {
+    const { data } = await api.get("/users/search", {
+      params: { q },
+      ...(options?.signal ? { signal: options.signal } : {}),
+    });
+    return SearchUsersResponseSchema.parse(data).users;
   };
 }
 

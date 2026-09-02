@@ -25,7 +25,7 @@ function UserAvatar() {
       <Avatar
         className={styles["avatar"] ?? ""}
         src={user?.avatarUrl}
-        icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
+        icon={<UserOutlined />}
         onClick={handleClick}
         data-testid="user-avatar"
       />

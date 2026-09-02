@@ -39,3 +39,36 @@ export const ProjectNameSchema = z
   .trim()
   .min(1, "Project name is required")
   .max(100, "Project name must be at most 100 characters");
+
+export const ProjectMemberRoleSchema = z.enum(["admin", "editor", "viewer"]);
+
+export type TProjectMemberRole = z.infer<typeof ProjectMemberRoleSchema>;
+
+export const ProjectMemberSchema = z.object({
+  userId: z.string(),
+  avatar: z.url().nullable(),
+  username: z.string(),
+  email: z.email(),
+  accessibility: ProjectMemberRoleSchema,
+});
+
+export type TProjectMember = z.infer<typeof ProjectMemberSchema>;
+
+export const ProjectMembersListSchema = z.object({
+  members: z.array(ProjectMemberSchema),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+
+export type TProjectMembersList = z.infer<typeof ProjectMembersListSchema>;
+
+export type TMemberAccessibilityInput = {
+  userId: string;
+  accessibility: TProjectMemberRole;
+};
+
+/** "admin" is granted implicitly (project creation) or transferred outside this UI, never picked from a list. */
+export const AssignableProjectMemberRoleSchema = ProjectMemberRoleSchema.exclude(["admin"]);
+
+export type TAssignableProjectMemberRole = z.infer<typeof AssignableProjectMemberRoleSchema>;

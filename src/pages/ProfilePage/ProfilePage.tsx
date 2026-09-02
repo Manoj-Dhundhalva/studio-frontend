@@ -61,12 +61,7 @@ function ProfilePage() {
       <Typography.Title level={3}>Profile</Typography.Title>
 
       <Flex justify="center" className={styles["avatar-wrapper"] ?? ""}>
-        <Avatar
-          size={96}
-          src={user?.avatarUrl}
-          icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
-          data-testid="profile-avatar"
-        />
+        <Avatar size={96} src={user?.avatarUrl} icon={<UserOutlined />} data-testid="profile-avatar" />
       </Flex>
 
       <Form form={form} layout="vertical" onFinish={handleFinish} className={styles["form"]}>

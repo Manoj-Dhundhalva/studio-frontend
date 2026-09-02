@@ -1,0 +1,28 @@
+.row {
+  padding: 8px 0;
+}
+
+.identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  flex-shrink: 0;
+}
+
+.names {
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.email {
+  font-size: 12px;
+}
+
+.select {
+  width: 96px;
+}

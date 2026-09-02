@@ -1,14 +1,23 @@
 import { api } from "@/services/api";
 import {
   ProjectDetailSchema,
+  ProjectMembersListSchema,
   ProjectNameUpdateSchema,
   ProjectSchema,
   ProjectsListSchema,
+  type TMemberAccessibilityInput,
   type TProject,
   type TProjectDetail,
+  type TProjectMembersList,
   type TProjectNameUpdate,
   type TUserProjectSummary,
 } from "./projects.types";
+
+/** Surfaces the backend's own `error` message (e.g. the 409 last-admin case) instead of axios's generic status-code message. */
+const toServiceError = (error: unknown, fallback: string): Error => {
+  const message = (error as { apiError?: { data?: { error?: string } } })?.apiError?.data?.error;
+  return new Error(message ?? fallback);
+};
 
 class ProjectsService {
   private static instance: ProjectsService;
@@ -40,6 +49,41 @@ class ProjectsService {
   updateProjectName = async (projectId: string, projectName: string): Promise<TProjectNameUpdate> => {
     const { data } = await api.patch(`/projects/${projectId}/name`, { projectName });
     return ProjectNameUpdateSchema.parse(data);
+  };
+
+  getProjectMembers = async (
+    projectId: string,
+    { limit = 50, offset = 0 }: { limit?: number; offset?: number } = {},
+  ): Promise<TProjectMembersList> => {
+    const { data } = await api.get(`/projects/${projectId}/members`, { params: { limit, offset } });
+    return ProjectMembersListSchema.parse(data);
+  };
+
+  addProjectMembers = async (projectId: string, members: TMemberAccessibilityInput[]): Promise<void> => {
+    try {
+      await api.post(`/projects/${projectId}/members`, { members });
+    } catch (error) {
+      throw toServiceError(error, "Failed to add member(s).");
+    }
+  };
+
+  updateProjectMembersAccessibility = async (
+    projectId: string,
+    members: TMemberAccessibilityInput[],
+  ): Promise<void> => {
+    try {
+      await api.patch(`/projects/${projectId}/members`, { members });
+    } catch (error) {
+      throw toServiceError(error, "Failed to update accessibility.");
+    }
+  };
+
+  removeProjectMembers = async (projectId: string, userIds: string[]): Promise<void> => {
+    try {
+      await api.delete(`/projects/${projectId}/members`, { data: { userIds } });
+    } catch (error) {
+      throw toServiceError(error, "Failed to remove member(s).");
+    }
   };
 }
 
