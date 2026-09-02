@@ -8,6 +8,7 @@ import type {
   TSlideOrderEntry,
 } from "@/services/canvas/canvas.types";
 import type { TProjectMemberRole } from "@/services/projects/projects.types";
+import type { TProjectMedia } from "@/services/media/media.types";
 import type { TSocketErrorCode } from "./socket.constants";
 
 /** Mirror of `canva-backend/src/socket/socket.types.ts`. Change both together. */
@@ -45,6 +46,9 @@ export type TServerToClientEvents = {
   "cursor:moved": (payload: { projectId: string; socketId: string; userId: string; x: number; y: number }) => void;
   "selection:changed": (payload: { projectId: string; socketId: string; elementIds: string[] }) => void;
   "presence:activeSlideChanged": (payload: { projectId: string; socketId: string; canvasId: string }) => void;
+
+  "media:uploaded": (payload: { projectId: string; socketId: string; media: TProjectMedia }) => void;
+  "media:deleted": (payload: { projectId: string; socketId: string; mediaId: string }) => void;
 
   "slide:created": (payload: {
     projectId: string;

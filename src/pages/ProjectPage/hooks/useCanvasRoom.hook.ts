@@ -35,6 +35,7 @@ import {
   presenceSynced,
 } from "@/store/slices/presence.slice";
 import { memberAccessibilitySet, memberRemoved } from "@/store/slices/members.slice";
+import { mediaAdded, mediaRemoved, mediaReset } from "@/store/slices/media.slice";
 import { projectAccessibilitySet, resetProject } from "@/store/slices/project.slice";
 import { selectCurrentUser } from "@/store/slices/user.slice";
 import type { RootState } from "@/store/store";
@@ -126,6 +127,21 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
       socketService.on(SOCKET_EVENT.SERVER.PRESENCE_ACTIVE_SLIDE_CHANGED, (payload) => {
         if (payload.projectId !== projectId) return;
         dispatch(presenceActiveSlideChanged({ projectId, socketId: payload.socketId, canvasId: payload.canvasId }));
+      }),
+    );
+
+    // ---------------------------------------------------------------- media
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.MEDIA_UPLOADED, (payload) => {
+        if (payload.projectId !== projectId) return;
+        dispatch(mediaAdded({ projectId, media: payload.media }));
+      }),
+    );
+
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.MEDIA_DELETED, (payload) => {
+        if (payload.projectId !== projectId) return;
+        dispatch(mediaRemoved({ projectId, mediaId: payload.mediaId }));
       }),
     );
 
@@ -287,6 +303,7 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
         selectSlides(store.getState(), projectId).forEach((slide) => dispatch(canvasReset(slide.canvasId)));
         dispatch(slidesReset(projectId));
         dispatch(presenceReset(projectId));
+        dispatch(mediaReset(projectId));
         dispatch(resetProject(projectId));
         cursorStore.clear();
 

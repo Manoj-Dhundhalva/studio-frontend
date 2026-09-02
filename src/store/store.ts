@@ -5,6 +5,7 @@ import membersReducer from "./slices/members.slice";
 import canvasReducer from "./slices/canvas.slice";
 import slidesReducer from "./slices/slides.slice";
 import presenceReducer from "./slices/presence.slice";
+import mediaReducer from "./slices/media.slice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     canvas: canvasReducer,
     slides: slidesReducer,
     presence: presenceReducer,
+    media: mediaReducer,
   },
 });
 

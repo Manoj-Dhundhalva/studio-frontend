@@ -1,23 +1,32 @@
-import { memo, useState } from "react";
-import { Button, Flex, Input, Typography } from "antd";
+import { memo, useRef, useState } from "react";
+import { Button, Flex, Input, Popconfirm, Spin, Typography } from "antd";
 import {
   AppstoreOutlined,
   ArrowRightOutlined,
   BorderOutlined,
+  DeleteOutlined,
   FontSizeOutlined,
   LineOutlined,
   PictureOutlined,
   SmileOutlined,
   StarOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { ELEMENT_TYPE, EMOJI_GLYPHS, type TElementType } from "@/services/canvas/canvas.constants";
 import type { TElementProps } from "@/services/canvas/canvas.types";
+import type { TProjectMedia } from "@/services/media/media.types";
+import type { TPendingMediaUpload } from "../../hooks/useMediaLibrary.hook";
 import { utils } from "@/utils";
 import styles from "./ElementsPanel.module.scss";
 
 export type TElementsPanelProps = {
   canEdit: boolean;
   onAdd: (type: TElementType, props?: TElementProps) => void;
+  media: readonly TProjectMedia[];
+  isMediaLoading: boolean;
+  pendingUploads: readonly TPendingMediaUpload[];
+  onUploadMedia: (file: File) => void;
+  onDeleteMedia: (mediaId: string) => Promise<void>;
 };
 
 type TShapeRow = {
@@ -26,7 +35,7 @@ type TShapeRow = {
   icon: React.ReactNode;
 };
 
-type TToolKey = "shapes" | "text" | "icons" | "image";
+type TToolKey = "shapes" | "text" | "icons" | "image" | "uploads";
 
 type TTool = {
   key: TToolKey;
@@ -50,6 +59,7 @@ const TOOLS: TTool[] = [
   { key: "text", label: "Text", icon: <FontSizeOutlined /> },
   { key: "icons", label: "Icons", icon: <SmileOutlined /> },
   { key: "image", label: "Image", icon: <PictureOutlined /> },
+  { key: "uploads", label: "Uploads", icon: <UploadOutlined /> },
 ];
 
 const ICON_LABELS = [
@@ -92,11 +102,39 @@ const fuzzyMatches = (value: string, query: string): boolean => {
   return true;
 };
 
-function ElementsPanel({ canEdit, onAdd }: TElementsPanelProps) {
+function ElementsPanel({
+  canEdit,
+  onAdd,
+  media,
+  isMediaLoading,
+  pendingUploads,
+  onUploadMedia,
+  onDeleteMedia,
+}: TElementsPanelProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [activeTool, setActiveTool] = useState<TToolKey>("shapes");
   const [shapeSearch, setShapeSearch] = useState("");
   const [iconSearch, setIconSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFilePicked = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    onUploadMedia(file);
+  };
+
+  const handleAddMedia = (item: TProjectMedia) => {
+    onAdd(ELEMENT_TYPE.IMAGE, {
+      src: item.url,
+      naturalWidth: item.width ?? undefined,
+      naturalHeight: item.height ?? undefined,
+    });
+  };
 
   const handleAddImage = () => {
     const trimmed = imageUrl.trim();
@@ -242,6 +280,91 @@ function ElementsPanel({ canEdit, onAdd }: TElementsPanelProps) {
               >
                 Add image
               </Button>
+            </Flex>
+          )}
+
+          {activeTool === "uploads" && (
+            <Flex vertical gap={8}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                onChange={handleFilePicked}
+                data-testid="upload-file-input"
+                hidden
+              />
+              <Button
+                size="small"
+                block
+                disabled={!canEdit}
+                icon={<UploadOutlined />}
+                onClick={() => fileInputRef.current?.click()}
+                data-testid="upload-media-button"
+              >
+                Upload
+              </Button>
+
+              {isMediaLoading ? (
+                <Flex justify="center" className={styles["hint"] ?? ""}>
+                  <Spin size="small" />
+                </Flex>
+              ) : media.length === 0 && pendingUploads.length === 0 ? (
+                <Typography.Text type="secondary" className={styles["media-empty"] ?? ""}>
+                  Files uploaded by anyone on this project show up here for everyone to use.
+                </Typography.Text>
+              ) : (
+                <div className={styles["media-grid"] ?? ""} data-testid="media-grid">
+                  {pendingUploads.map((pending) => (
+                    <div
+                      key={pending.localId}
+                      className={styles["media-tile"] ?? ""}
+                      aria-label={`Uploading ${pending.fileName}`}
+                      data-testid={`media-pending-${pending.localId}`}
+                    >
+                      <img src={pending.previewUrl} alt={pending.fileName} className={styles["media-thumb"] ?? ""} />
+                      <div className={styles["media-progress-track"] ?? ""}>
+                        <div
+                          className={styles["media-progress-fill"] ?? ""}
+                          style={{ width: `${pending.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {media.map((item) => (
+                    <div
+                      key={item.mediaId}
+                      className={styles["media-tile"] ?? ""}
+                      onClick={() => handleAddMedia(item)}
+                      role="button"
+                      aria-label={`Insert ${item.fileName}`}
+                      data-testid={`media-tile-${item.mediaId}`}
+                    >
+                      <img src={item.url} alt={item.fileName} className={styles["media-thumb"] ?? ""} />
+                      {canEdit && (
+                        <Popconfirm
+                          title="Delete this upload?"
+                          onConfirm={(event) => {
+                            event?.stopPropagation();
+                            void onDeleteMedia(item.mediaId);
+                          }}
+                          onCancel={(event) => event?.stopPropagation()}
+                          okText="Delete"
+                          cancelText="Cancel"
+                        >
+                          <Button
+                            size="small"
+                            type="text"
+                            className={styles["media-delete"] ?? ""}
+                            icon={<DeleteOutlined />}
+                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`Delete ${item.fileName}`}
+                          />
+                        </Popconfirm>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </Flex>
           )}
         </div>

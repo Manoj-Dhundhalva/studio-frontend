@@ -29,6 +29,7 @@ import { utils } from "@/utils";
 import { buildReorder, createElementInput } from "./ProjectPage.utils";
 import { useCanvasRoom } from "./hooks/useCanvasRoom.hook";
 import { useElementMutations } from "./hooks/useElementMutations.hook";
+import { useMediaLibrary } from "./hooks/useMediaLibrary.hook";
 import { useSlideMutations } from "./hooks/useSlideMutations.hook";
 import ElementsPanel from "./components/ElementsPanel";
 import PropertiesPanel from "./components/PropertiesPanel";
@@ -110,6 +111,7 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
   const { addElement, previewElement, commitElement, removeElements, reorderElements, setSelection } =
     useElementMutations(projectId, canvasId, canEdit);
   const slideMutations = useSlideMutations(projectId, canEdit);
+  const { media, isLoading: isMediaLoading, pendingUploads, uploadMedia, deleteMedia } = useMediaLibrary(projectId);
 
   const selection = useAppSelector((state: RootState) =>
     selectedIds
@@ -240,7 +242,15 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
   return (
     <Flex vertical className={styles["editor"] ?? ""} data-testid="project-page">
       <div className={styles["editor-body"] ?? ""}>
-        <ElementsPanel canEdit={canEdit} onAdd={handleAdd} />
+        <ElementsPanel
+          canEdit={canEdit}
+          onAdd={handleAdd}
+          media={media}
+          isMediaLoading={isMediaLoading}
+          pendingUploads={pendingUploads}
+          onUploadMedia={uploadMedia}
+          onDeleteMedia={deleteMedia}
+        />
 
         <Suspense fallback={<Skeleton active className={styles["stage-fallback"] ?? ""} />}>
           <CanvasStage
