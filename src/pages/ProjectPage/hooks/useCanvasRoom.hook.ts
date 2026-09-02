@@ -19,6 +19,14 @@ import {
   syncStatusChanged,
 } from "@/store/slices/canvas.slice";
 import {
+  selectSlides,
+  slideRemoved,
+  slideUpserted,
+  slidesHydrated,
+  slidesReordered,
+  slidesReset,
+} from "@/store/slices/slides.slice";
+import {
   presenceJoined,
   presenceLeft,
   presenceReset,
@@ -45,6 +53,11 @@ export type TRemoteSelections = Record<string, string[]>;
 /**
  * Joins the project room and routes every server event into the store.
  *
+ * Every element/canvas-resize broadcast is applied by its own `canvasId`
+ * unconditionally — not gated on "is this the currently active slide" — so
+ * every slide's Redux entity (and therefore its thumbnail) stays live
+ * regardless of which one the user is looking at.
+ *
  * Returns the remote-selection map, which is low-frequency enough to keep in
  * component state but not worth a store round-trip.
  */
@@ -68,12 +81,12 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
     unsubscribers.push(
       socketService.subscribeStatus((status) => {
         if (status === SOCKET_STATUS.RECONNECTING || status === SOCKET_STATUS.DISCONNECTED) {
-          dispatch(syncStatusChanged({ projectId, syncStatus: SYNC_STATUS.RECONNECTING }));
+          dispatch(syncStatusChanged({ canvasId: projectId, syncStatus: SYNC_STATUS.RECONNECTING }));
           return;
         }
 
         if (status === SOCKET_STATUS.CONNECTED) {
-          dispatch(syncStatusChanged({ projectId, syncStatus: SYNC_STATUS.SYNCED }));
+          dispatch(syncStatusChanged({ canvasId: projectId, syncStatus: SYNC_STATUS.SYNCED }));
         }
       }),
     );
@@ -124,11 +137,49 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
       }),
     );
 
+    // --------------------------------------------------------------- slides
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.SLIDE_CREATED, (payload) => {
+        if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
+        dispatch(slideUpserted({ projectId, slide: payload.slide }));
+        // Inserting anywhere but the end shifts every later sibling's `orderIndex`.
+        dispatch(slidesReordered({ projectId, order: payload.order }));
+      }),
+    );
+
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.SLIDE_DUPLICATED, (payload) => {
+        if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
+        dispatch(slideUpserted({ projectId, slide: payload.slide }));
+        // Seed the copy's elements too, so its thumbnail renders without a
+        // separate `slide:activate` round trip.
+        dispatch(
+          canvasHydrated({ canvasId: payload.slide.canvasId, canvas: payload.slide, elements: payload.elements }),
+        );
+        dispatch(slidesReordered({ projectId, order: payload.order }));
+      }),
+    );
+
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.SLIDE_REORDERED, (payload) => {
+        if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
+        dispatch(slidesReordered({ projectId, order: payload.order }));
+      }),
+    );
+
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.SLIDE_DELETED, (payload) => {
+        if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
+        dispatch(slideRemoved({ projectId, canvasId: payload.canvasId }));
+        dispatch(canvasReset(payload.canvasId));
+      }),
+    );
+
     // ------------------------------------------------------------- elements
     unsubscribers.push(
       socketService.on(SOCKET_EVENT.SERVER.ELEMENT_CREATED, (payload) => {
         if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
-        dispatch(elementUpserted({ projectId, element: payload.element }));
+        dispatch(elementUpserted({ canvasId: payload.canvasId, element: payload.element }));
       }),
     );
 
@@ -143,12 +194,17 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
         // Per-element last-write-wins. Socket.IO preserves per-socket ordering
         // but not ordering across sockets, and a reconnect can replay, so a
         // lower-or-equal version is stale by definition.
-        const local = selectElement(store.getState(), projectId, payload.elementId);
+        const local = selectElement(store.getState(), payload.canvasId, payload.elementId);
 
         if (local && payload.version <= local.version) return;
 
         dispatch(
-          elementPatched({ projectId, elementId: payload.elementId, patch: payload.patch, version: payload.version }),
+          elementPatched({
+            canvasId: payload.canvasId,
+            elementId: payload.elementId,
+            patch: payload.patch,
+            version: payload.version,
+          }),
         );
       }),
     );
@@ -156,14 +212,14 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
     unsubscribers.push(
       socketService.on(SOCKET_EVENT.SERVER.ELEMENT_DELETED, (payload) => {
         if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
-        dispatch(elementsRemoved({ projectId, elementIds: payload.elementIds }));
+        dispatch(elementsRemoved({ canvasId: payload.canvasId, elementIds: payload.elementIds }));
       }),
     );
 
     unsubscribers.push(
       socketService.on(SOCKET_EVENT.SERVER.ELEMENT_REORDERED, (payload) => {
         if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
-        dispatch(elementsReordered({ projectId, order: payload.order }));
+        dispatch(elementsReordered({ canvasId: payload.canvasId, order: payload.order }));
       }),
     );
 
@@ -172,14 +228,15 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
     unsubscribers.push(
       socketService.on(SOCKET_EVENT.SERVER.ELEMENT_SYNCED, (payload) => {
         if (payload.projectId !== projectId) return;
-        dispatch(elementSynced({ projectId, element: payload.element }));
+        dispatch(elementSynced({ canvasId: payload.canvasId, element: payload.element }));
       }),
     );
 
     unsubscribers.push(
       socketService.on(SOCKET_EVENT.SERVER.CANVAS_RESIZED, (payload) => {
         if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
-        dispatch(canvasReplaced({ projectId, canvas: payload.canvas }));
+        dispatch(canvasReplaced({ canvasId: payload.canvasId, canvas: payload.canvas }));
+        dispatch(slideUpserted({ projectId, slide: payload.canvas }));
       }),
     );
 
@@ -219,7 +276,8 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
           dispatch(memberRemoved({ projectId, userId }));
         }
 
-        dispatch(canvasReset(projectId));
+        selectSlides(store.getState(), projectId).forEach((slide) => dispatch(canvasReset(slide.canvasId)));
+        dispatch(slidesReset(projectId));
         dispatch(presenceReset(projectId));
         dispatch(resetProject(projectId));
         cursorStore.clear();
@@ -251,7 +309,23 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
           return;
         }
 
-        dispatch(canvasHydrated({ projectId, canvas: result.data.canvas, elements: result.data.elements }));
+        dispatch(slidesHydrated({ projectId, slides: result.data.slides, activeCanvasId: result.data.activeCanvasId }));
+
+        const activeSlide = result.data.slides.find((slide) => slide.canvasId === result.data.activeCanvasId);
+
+        // The server always picks `activeCanvasId` from `slides`, so this is
+        // always found in practice; guarded rather than asserted so a future
+        // contract change fails soft instead of crashing the join.
+        if (activeSlide) {
+          dispatch(
+            canvasHydrated({
+              canvasId: result.data.activeCanvasId,
+              canvas: activeSlide,
+              elements: result.data.elements,
+            }),
+          );
+        }
+
         dispatch(
           presenceSynced({
             projectId,

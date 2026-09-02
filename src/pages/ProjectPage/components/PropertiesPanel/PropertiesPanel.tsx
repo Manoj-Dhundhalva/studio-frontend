@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Button, ColorPicker, Divider, Flex, InputNumber, Segmented, Select, Slider, Tooltip, Typography } from "antd";
 import { DeleteOutlined, VerticalAlignBottomOutlined, VerticalAlignTopOutlined } from "@ant-design/icons";
 import { ELEMENT_TYPE, FONT_FAMILIES, TEXT_ALIGN, type TTextAlign } from "@/services/canvas/canvas.constants";
@@ -19,6 +19,30 @@ export type TPropertiesPanelProps = {
 /** antd's ColorPicker hands back an AggregationColor; only the hex is stored. */
 const toHex = (value: { toHexString: () => string }): string => value.toHexString();
 
+/**
+ * Local mirror of one numeric field, so the (fully controlled) `Slider` has an
+ * `onChange` to move against during the gesture. Without it, a `Slider` given
+ * only `value` + `onChangeComplete` renders as inert: every drag or arrow-key
+ * step gets immediately overridden back to the still-unchanged `value` prop,
+ * since nothing ever tells the component the in-progress position is real.
+ * Resyncs whenever the selection or the committed value changes underneath it
+ * (switching elements, a remote edit, or this same gesture's own commit) —
+ * done during render, per React's "adjusting state on a prop change" recipe,
+ * rather than in an effect, so there's no extra render between the prop
+ * changing and the draft reflecting it.
+ */
+const useDraft = (committed: number): [number, (value: number) => void] => {
+  const [draft, setDraft] = useState(committed);
+  const [prevCommitted, setPrevCommitted] = useState(committed);
+
+  if (committed !== prevCommitted) {
+    setPrevCommitted(committed);
+    setDraft(committed);
+  }
+
+  return [draft, setDraft];
+};
+
 function PropertiesPanel({
   canEdit,
   selection,
@@ -27,6 +51,12 @@ function PropertiesPanel({
   onReorder,
   canvasSizeProps,
 }: TPropertiesPanelProps) {
+  const primary = selection[0];
+
+  const [strokeWidthDraft, setStrokeWidthDraft] = useDraft(primary?.strokeWidth ?? 0);
+  const [cornerRadiusDraft, setCornerRadiusDraft] = useDraft(primary?.cornerRadius ?? 0);
+  const [opacityDraft, setOpacityDraft] = useDraft(primary?.opacity ?? 1);
+
   // With nothing selected the panel becomes the workspace settings, which is
   // where "change the ratio of the main body" lives.
   if (selection.length === 0) {
@@ -36,8 +66,6 @@ function PropertiesPanel({
       </div>
     );
   }
-
-  const primary = selection[0];
 
   if (!primary) {
     return null;
@@ -89,8 +117,9 @@ function PropertiesPanel({
                 className={styles["slider"] ?? ""}
                 min={0}
                 max={40}
-                value={primary.strokeWidth}
+                value={strokeWidthDraft}
                 disabled={!canEdit}
+                onChange={setStrokeWidthDraft}
                 onChangeComplete={(value) => commitAll({ strokeWidth: Number(value) })}
               />
             </Flex>
@@ -103,8 +132,9 @@ function PropertiesPanel({
             <Slider
               min={1}
               max={40}
-              value={primary.strokeWidth}
+              value={strokeWidthDraft}
               disabled={!canEdit}
+              onChange={setStrokeWidthDraft}
               onChangeComplete={(value) => commitAll({ strokeWidth: Number(value) })}
             />
           </Flex>
@@ -116,8 +146,9 @@ function PropertiesPanel({
             <Slider
               min={0}
               max={Math.floor(Math.min(primary.width, primary.height) / 2)}
-              value={primary.cornerRadius}
+              value={cornerRadiusDraft}
               disabled={!canEdit}
+              onChange={setCornerRadiusDraft}
               onChangeComplete={(value) => commitAll({ cornerRadius: Number(value) })}
             />
           </Flex>
@@ -129,8 +160,9 @@ function PropertiesPanel({
             min={0}
             max={1}
             step={0.05}
-            value={primary.opacity}
+            value={opacityDraft}
             disabled={!canEdit}
+            onChange={setOpacityDraft}
             onChangeComplete={(value) => commitAll({ opacity: Number(value) })}
           />
         </Flex>

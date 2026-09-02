@@ -2,18 +2,15 @@ import { memo, useCallback, useEffect, useRef } from "react";
 import { Group } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { Vector2d } from "konva/lib/types";
 import { useAppSelector } from "@/store";
 import { selectElement } from "@/store/slices/canvas.slice";
-import type { TElementPatch, TSize } from "@/services/canvas/canvas.types";
-import { clamp } from "@/utils/rate-limit.utils";
+import type { TElementPatch } from "@/services/canvas/canvas.types";
 import { normalizeSize } from "../../ProjectPage.utils";
 import ElementPrimitive from "../ElementPrimitive";
 
 export type TElementNodeProps = {
-  projectId: string;
+  canvasId: string;
   elementId: string;
-  canvasSize: TSize;
   canEdit: boolean;
   onSelect: (elementId: string, isAdditive: boolean) => void;
   onPreview: (elementId: string, patch: TElementPatch) => void;
@@ -27,17 +24,8 @@ export type TElementNodeProps = {
  * Subscribes to its own element only, so moving one element re-renders one node
  * rather than the whole tree.
  */
-function ElementNode({
-  projectId,
-  elementId,
-  canvasSize,
-  canEdit,
-  onSelect,
-  onPreview,
-  onCommit,
-  registerNode,
-}: TElementNodeProps) {
-  const element = useAppSelector((state) => selectElement(state, projectId, elementId));
+function ElementNode({ canvasId, elementId, canEdit, onSelect, onPreview, onCommit, registerNode }: TElementNodeProps) {
+  const element = useAppSelector((state) => selectElement(state, canvasId, elementId));
   const nodeRef = useRef<Konva.Group | null>(null);
 
   /**
@@ -93,27 +81,6 @@ function ElementNode({
       onCommit(elementId, { x: Math.round(event.target.x()), y: Math.round(event.target.y()) });
     },
     [elementId, onCommit],
-  );
-
-  /** Clamps a drag to the workspace. Konva hands this absolute (screen) coords. */
-  const dragBoundFunc = useCallback(
-    (position: Vector2d): Vector2d => {
-      const node = nodeRef.current;
-      const stage = node?.getStage();
-
-      if (!node || !stage || !element) {
-        return position;
-      }
-
-      const scale = stage.scaleX();
-      const minX = stage.x();
-      const minY = stage.y();
-      const maxX = minX + Math.max(0, canvasSize.width - element.width) * scale;
-      const maxY = minY + Math.max(0, canvasSize.height - element.height) * scale;
-
-      return { x: clamp(position.x, minX, maxX), y: clamp(position.y, minY, maxY) };
-    },
-    [canvasSize, element],
   );
 
   const handleTransform = useCallback(() => {
@@ -194,7 +161,6 @@ function ElementNode({
       rotation={element.rotation}
       opacity={element.opacity}
       draggable={canEdit}
-      dragBoundFunc={dragBoundFunc}
       onMouseDown={handleSelect}
       onTouchStart={handleSelect}
       onDragMove={handleDragMove}

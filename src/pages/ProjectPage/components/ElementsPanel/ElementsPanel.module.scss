@@ -1,9 +1,50 @@
 .panel {
   height: 100%;
-  padding: 8px 4px;
-  overflow-y: auto;
   border-right: 1px solid var(--editor-border);
   background-color: var(--editor-panel-bg);
+}
+
+.tool-layout {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.tool-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
+  border-right: 1px solid var(--editor-border);
+}
+
+.tool-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-height: 52px;
+  height: auto;
+  padding: 6px 2px;
+  font-size: 18px;
+}
+
+.tool-label {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.tool-content {
+  min-width: 0;
+  padding: 12px 8px;
+  overflow-y: auto;
+}
+
+.title {
+  margin: 0 0 12px;
 }
 
 .row {

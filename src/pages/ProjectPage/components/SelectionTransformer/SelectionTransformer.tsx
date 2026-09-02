@@ -3,12 +3,11 @@ import { Transformer } from "react-konva";
 import type Konva from "konva";
 import type { Box } from "konva/lib/shapes/Transformer";
 import { ELEMENT_TYPE, MIN_ELEMENT_SIZE } from "@/services/canvas/canvas.constants";
-import type { TCanvasElement, TSize } from "@/services/canvas/canvas.types";
+import type { TCanvasElement } from "@/services/canvas/canvas.types";
 
 export type TSelectionTransformerProps = {
   selectedIds: readonly string[];
   selectedElements: TCanvasElement[];
-  canvasSize: TSize;
   /** Live registry of element id -> Konva node, owned by `CanvasStage`. */
   nodeRegistryRef: React.RefObject<Map<string, Konva.Group>>;
   /** Bumped on add/delete, so a freshly created element gets handles. */
@@ -21,7 +20,6 @@ const TEXT_ANCHORS = ["middle-left", "middle-right"];
 function SelectionTransformer({
   selectedIds,
   selectedElements,
-  canvasSize,
   nodeRegistryRef,
   revision,
 }: TSelectionTransformerProps) {
@@ -43,40 +41,9 @@ function SelectionTransformer({
     // the registry until the render *after* `selectedIds` changes.
   }, [selectedIds, nodeRegistryRef, revision]);
 
-  /**
-   * Rejects a box that would leave the workspace or collapse the element.
-   *
-   * Konva hands these boxes in **absolute (screen)** coordinates, so the
-   * artboard rect has to be pushed through the stage transform to be compared
-   * in the same space.
-   */
-  const boundBoxFunc = (oldBox: Box, newBox: Box): Box => {
-    if (newBox.width < MIN_ELEMENT_SIZE || newBox.height < MIN_ELEMENT_SIZE) {
-      return oldBox;
-    }
-
-    const stage = transformerRef.current?.getStage();
-
-    if (!stage) {
-      return newBox;
-    }
-
-    const transform = stage.getAbsoluteTransform();
-    const topLeft = transform.point({ x: 0, y: 0 });
-    const bottomRight = transform.point({ x: canvasSize.width, y: canvasSize.height });
-
-    // A rotated box has corners outside its axis-aligned envelope, so comparing
-    // the envelope is a deliberate approximation: the element stops at the edge
-    // rather than being silently clamped into a wrong shape.
-    const tolerance = 1;
-    const isInside =
-      newBox.x >= topLeft.x - tolerance &&
-      newBox.y >= topLeft.y - tolerance &&
-      newBox.x + newBox.width <= bottomRight.x + tolerance &&
-      newBox.y + newBox.height <= bottomRight.y + tolerance;
-
-    return isInside ? newBox : oldBox;
-  };
+  /** Rejects a resize that would collapse the element; position is otherwise free. */
+  const boundBoxFunc = (oldBox: Box, newBox: Box): Box =>
+    newBox.width < MIN_ELEMENT_SIZE || newBox.height < MIN_ELEMENT_SIZE ? oldBox : newBox;
 
   const isTextOnly = selectedElements.length === 1 && selectedElements[0]?.type === ELEMENT_TYPE.TEXT;
   const isLineOnly =

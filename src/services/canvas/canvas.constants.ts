@@ -73,7 +73,7 @@ export const DEFAULT_CANVAS = {
 } as const;
 
 export const DEFAULT_ELEMENT_STYLE = {
-  fill: "#1677ff",
+  fill: "#C8D1D9",
   stroke: "#000000",
   strokeWidth: 0,
   opacity: 1,

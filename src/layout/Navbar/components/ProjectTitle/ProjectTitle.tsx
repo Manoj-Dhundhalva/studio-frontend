@@ -29,6 +29,9 @@ function ProjectTitle() {
   }
 
   const isSaving = status === REQUEST_STATUS.LOADING;
+  // Renaming is admin-only server-side (`updateProjectName`'s membership check) — hiding
+  // the affordance for everyone else avoids an edit control that always 403s.
+  const isCurrentUserAdmin = project.accessibility === "admin";
 
   const handleRename = async (nextName: string) => {
     const result = ProjectNameSchema.safeParse(nextName);
@@ -54,7 +57,7 @@ function ProjectTitle() {
       className={styles["project-title"] ?? ""}
       aria-label="Project name"
       editable={
-        isSaving
+        isSaving || !isCurrentUserAdmin
           ? false
           : {
               triggerType: ["text", "icon"],

@@ -1,0 +1,21 @@
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 112px;
+  padding: 10px 20px;
+  // The strip can hold more slides than fit in the viewport width — without this,
+  // the ancestor layout's `overflow-x: hidden` clips the overflow entirely, making
+  // slides past the fold not just unscrollable but literally unreachable.
+  overflow-x: auto;
+  border-top: 1px solid var(--editor-border);
+  background-color: var(--editor-panel-bg);
+}
+
+.add {
+  flex: 0 0 auto;
+  width: 90px;
+  height: 90px;
+}

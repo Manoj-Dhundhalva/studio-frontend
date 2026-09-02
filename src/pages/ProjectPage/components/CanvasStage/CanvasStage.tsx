@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useRef } from "react";
-import { Group, Layer, Rect, Stage } from "react-konva";
+import { Layer, Rect, Stage } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useAppSelector } from "@/store";
@@ -21,6 +21,7 @@ import styles from "./CanvasStage.module.scss";
 
 export type TCanvasStageProps = {
   projectId: string;
+  canvasId: string;
   canvas: TCanvas;
   canEdit: boolean;
   selectedIds: readonly string[];
@@ -34,6 +35,7 @@ export type TCanvasStageProps = {
 
 function CanvasStage({
   projectId,
+  canvasId,
   canvas,
   canEdit,
   selectedIds,
@@ -44,11 +46,11 @@ function CanvasStage({
   onPreview,
   onCommit,
 }: TCanvasStageProps) {
-  const order = useAppSelector((state) => selectElementOrder(state, projectId));
-  const revision = useAppSelector((state) => selectCanvasRevision(state, projectId));
+  const order = useAppSelector((state) => selectElementOrder(state, canvasId));
+  const revision = useAppSelector((state) => selectCanvasRevision(state, canvasId));
   const selectedElements = useAppSelector((state: RootState) =>
     selectedIds
-      .map((elementId) => selectElement(state, projectId, elementId))
+      .map((elementId) => selectElement(state, canvasId, elementId))
       .filter((element): element is TCanvasElement => element !== null),
   );
 
@@ -157,23 +159,22 @@ function CanvasStage({
           />
         </Layer>
 
-        {/* 2. Content, clipped to the artboard so nothing paints into the void. */}
+        {/* 2. Content. Deliberately NOT clipped to the artboard — like Canva's
+               pasteboard, an element can sit partly or fully outside the page
+               and stay visible in the editor; only a render/export would crop it. */}
         <Layer>
-          <Group clipX={0} clipY={0} clipWidth={canvas.width} clipHeight={canvas.height}>
-            {order.map((elementId) => (
-              <ElementNode
-                key={elementId}
-                projectId={projectId}
-                elementId={elementId}
-                canvasSize={canvasSize}
-                canEdit={canEdit}
-                onSelect={handleElementSelect}
-                onPreview={onPreview}
-                onCommit={onCommit}
-                registerNode={registerNode}
-              />
-            ))}
-          </Group>
+          {order.map((elementId) => (
+            <ElementNode
+              key={elementId}
+              canvasId={canvasId}
+              elementId={elementId}
+              canEdit={canEdit}
+              onSelect={handleElementSelect}
+              onPreview={onPreview}
+              onCommit={onCommit}
+              registerNode={registerNode}
+            />
+          ))}
         </Layer>
 
         {/* 3. Overlay. The transformer redraws every frame during a gesture, so
@@ -181,7 +182,7 @@ function CanvasStage({
                not re-rasterized alongside it. */}
         <Layer>
           <RemoteSelectionLayer
-            projectId={projectId}
+            canvasId={canvasId}
             remoteSelections={remoteSelections}
             presenceSockets={presenceSockets}
             selfSocketId={selfSocketId}
@@ -191,7 +192,6 @@ function CanvasStage({
             <SelectionTransformer
               selectedIds={selectedIds}
               selectedElements={selectedElements}
-              canvasSize={canvasSize}
               nodeRegistryRef={nodeRegistryRef}
               revision={revision}
             />

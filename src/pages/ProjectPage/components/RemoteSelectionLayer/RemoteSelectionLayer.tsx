@@ -7,7 +7,7 @@ import type { RootState } from "@/store/store";
 import type { TRemoteSelections } from "../../hooks/useCanvasRoom.hook";
 
 export type TRemoteSelectionLayerProps = {
-  projectId: string;
+  canvasId: string;
   remoteSelections: TRemoteSelections;
   presenceSockets: readonly TPresenceMember[];
   selfSocketId: string | null;
@@ -21,7 +21,7 @@ export type TRemoteSelectionLayerProps = {
  * moves.
  */
 function RemoteSelectionLayer({
-  projectId,
+  canvasId,
   remoteSelections,
   presenceSockets,
   selfSocketId,
@@ -48,7 +48,7 @@ function RemoteSelectionLayer({
   }, [remoteSelections, presenceSockets, selfSocketId]);
 
   const elements = useAppSelector((state: RootState) =>
-    outlines.map(([elementId, color]) => ({ element: selectElement(state, projectId, elementId), color })),
+    outlines.map(([elementId, color]) => ({ element: selectElement(state, canvasId, elementId), color })),
   );
 
   return (

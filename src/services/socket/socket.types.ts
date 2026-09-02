@@ -5,6 +5,7 @@ import type {
   TElementCreateInput,
   TElementOrderEntry,
   TElementPatch,
+  TSlideOrderEntry,
 } from "@/services/canvas/canvas.types";
 import type { TProjectMemberRole } from "@/services/projects/projects.types";
 import type { TSocketErrorCode } from "./socket.constants";
@@ -24,7 +25,10 @@ export type TPresenceMember = {
 export type TAck<T> = { ok: true; data: T } | { ok: false; code: TSocketErrorCode; error: string };
 
 export type TJoinResult = {
-  canvas: TCanvas;
+  /** Every slide's metadata, ordered. */
+  slides: TCanvas[];
+  activeCanvasId: string;
+  /** Only the active slide's elements — everything else is fetched lazily via `slide:activate`. */
   elements: TCanvasElement[];
   members: TPresenceMember[];
   accessibility: TProjectMemberRole;
@@ -39,19 +43,46 @@ export type TServerToClientEvents = {
   "cursor:moved": (payload: { projectId: string; socketId: string; userId: string; x: number; y: number }) => void;
   "selection:changed": (payload: { projectId: string; socketId: string; elementIds: string[] }) => void;
 
-  "element:created": (payload: { projectId: string; socketId: string; element: TCanvasElement }) => void;
+  "slide:created": (payload: {
+    projectId: string;
+    socketId: string;
+    slide: TCanvas;
+    order: TSlideOrderEntry[];
+  }) => void;
+  "slide:duplicated": (payload: {
+    projectId: string;
+    socketId: string;
+    slide: TCanvas;
+    elements: TCanvasElement[];
+    order: TSlideOrderEntry[];
+  }) => void;
+  "slide:reordered": (payload: { projectId: string; socketId: string; order: TSlideOrderEntry[] }) => void;
+  "slide:deleted": (payload: { projectId: string; socketId: string; canvasId: string }) => void;
+
+  "element:created": (payload: {
+    projectId: string;
+    canvasId: string;
+    socketId: string;
+    element: TCanvasElement;
+  }) => void;
   "element:updated": (payload: {
     projectId: string;
+    canvasId: string;
     socketId: string;
     elementId: string;
     version: number;
     patch: TElementPatch;
   }) => void;
-  "element:deleted": (payload: { projectId: string; socketId: string; elementIds: string[] }) => void;
-  "element:reordered": (payload: { projectId: string; socketId: string; order: TElementOrderEntry[] }) => void;
-  "element:synced": (payload: { projectId: string; element: TCanvasElement }) => void;
+  "element:deleted": (payload: { projectId: string; canvasId: string; socketId: string; elementIds: string[] }) => void;
+  "element:reordered": (payload: {
+    projectId: string;
+    canvasId: string;
+    socketId: string;
+    order: TElementOrderEntry[];
+  }) => void;
+  "element:synced": (payload: { projectId: string; canvasId: string; element: TCanvasElement }) => void;
 
-  "canvas:resized": (payload: { projectId: string; socketId: string; canvas: TCanvas }) => void;
+  "canvas:resized": (payload: { projectId: string; canvasId: string; socketId: string; canvas: TCanvas }) => void;
 
   "access:changed": (payload: { projectId: string; accessibility: TProjectMemberRole }) => void;
   "access:revoked": (payload: { projectId: string }) => void;
@@ -60,34 +91,68 @@ export type TServerToClientEvents = {
 };
 
 export type TClientToServerEvents = {
-  "canvas:join": (payload: { projectId: string }, ack: (result: TAck<TJoinResult>) => void) => void;
+  "canvas:join": (
+    payload: { projectId: string; activeCanvasId?: string },
+    ack: (result: TAck<TJoinResult>) => void,
+  ) => void;
   "canvas:leave": (payload: { projectId: string }) => void;
 
   "cursor:move": (payload: { projectId: string; x: number; y: number }) => void;
   "selection:change": (payload: { projectId: string; elementIds: string[] }) => void;
 
+  "slide:activate": (
+    payload: { projectId: string; canvasId: string },
+    ack: (result: TAck<{ elements: TCanvasElement[] }>) => void,
+  ) => void;
+
+  "slide:create": (
+    payload: { projectId: string; canvasId: string; afterCanvasId?: string },
+    ack: (result: TAck<{ slide: TCanvas; order: TSlideOrderEntry[] }>) => void,
+  ) => void;
+
+  "slide:duplicate": (
+    payload: { projectId: string; canvasId: string },
+    ack: (result: TAck<{ slide: TCanvas; elements: TCanvasElement[]; order: TSlideOrderEntry[] }>) => void,
+  ) => void;
+
+  "slide:reorder": (
+    payload: { projectId: string; order: TSlideOrderEntry[] },
+    ack: (result: TAck<{ order: TSlideOrderEntry[] }>) => void,
+  ) => void;
+
+  "slide:delete": (
+    payload: { projectId: string; canvasId: string },
+    ack: (result: TAck<{ canvasId: string }>) => void,
+  ) => void;
+
   "element:create": (
-    payload: { projectId: string; element: TElementCreateInput },
+    payload: { projectId: string; canvasId: string; element: TElementCreateInput },
     ack: (result: TAck<{ element: TCanvasElement }>) => void,
   ) => void;
 
   "element:update": (
-    payload: { projectId: string; elementId: string; baseVersion: number; patch: TElementPatch },
+    payload: { projectId: string; canvasId: string; elementId: string; baseVersion: number; patch: TElementPatch },
     ack: (result: TAck<{ version: number }>) => void,
   ) => void;
 
   "element:delete": (
-    payload: { projectId: string; elementIds: string[] },
+    payload: { projectId: string; canvasId: string; elementIds: string[] },
     ack: (result: TAck<{ elementIds: string[] }>) => void,
   ) => void;
 
   "element:reorder": (
-    payload: { projectId: string; order: TElementOrderEntry[] },
+    payload: { projectId: string; canvasId: string; order: TElementOrderEntry[] },
     ack: (result: TAck<{ order: TElementOrderEntry[] }>) => void,
   ) => void;
 
   "canvas:resize": (
-    payload: { projectId: string; width: number; height: number; aspectRatioPreset: TAspectRatioPreset },
+    payload: {
+      projectId: string;
+      canvasId: string;
+      width: number;
+      height: number;
+      aspectRatioPreset: TAspectRatioPreset;
+    },
     ack: (result: TAck<{ canvas: TCanvas }>) => void,
   ) => void;
 };

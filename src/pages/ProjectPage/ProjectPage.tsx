@@ -18,6 +18,7 @@ import {
   selectSelectedIds,
   selectSyncStatus,
 } from "@/store/slices/canvas.slice";
+import { selectActiveCanvasId } from "@/store/slices/slides.slice";
 import { selectPresenceSockets, selectSelfSocketId } from "@/store/slices/presence.slice";
 import { PROJECT_ROLE } from "@/services/projects/projects.types";
 import { canvasService, type TAspectRatioPreset, type TElementType } from "@/services/canvas";
@@ -28,10 +29,11 @@ import { utils } from "@/utils";
 import { buildReorder, createElementInput } from "./ProjectPage.utils";
 import { useCanvasRoom } from "./hooks/useCanvasRoom.hook";
 import { useElementMutations } from "./hooks/useElementMutations.hook";
+import { useSlideMutations } from "./hooks/useSlideMutations.hook";
 import ElementsPanel from "./components/ElementsPanel";
 import PropertiesPanel from "./components/PropertiesPanel";
+import SlideStrip from "./components/SlideStrip";
 import SyncIndicator from "./components/SyncIndicator";
-import ViewerNotice from "./components/ViewerNotice";
 import styles from "./ProjectPage.module.scss";
 
 /**
@@ -85,11 +87,15 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
   const dispatch = useAppDispatch();
 
   const project = useAppSelector((state) => selectProject(state, projectId));
-  const canvas = useAppSelector((state) => selectCanvas(state, projectId));
-  const order = useAppSelector((state) => selectElementOrder(state, projectId));
-  const selectedIds = useAppSelector((state) => selectSelectedIds(state, projectId));
-  const syncStatus = useAppSelector((state) => selectSyncStatus(state, projectId));
-  const pendingCount = useAppSelector((state) => selectPendingCount(state, projectId));
+  const activeCanvasId = useAppSelector((state) => selectActiveCanvasId(state, projectId));
+  // Every canvas-slice read below is scoped to the active slide, not the
+  // project — a project can hold many slides, each with its own entity.
+  const canvasId = activeCanvasId ?? "";
+  const canvas = useAppSelector((state) => selectCanvas(state, canvasId));
+  const order = useAppSelector((state) => selectElementOrder(state, canvasId));
+  const selectedIds = useAppSelector((state) => selectSelectedIds(state, canvasId));
+  const syncStatus = useAppSelector((state) => selectSyncStatus(state, canvasId));
+  const pendingCount = useAppSelector((state) => selectPendingCount(state, canvasId));
   const presenceSockets = useAppSelector((state) => selectPresenceSockets(state, projectId));
   const selfSocketId = useAppSelector((state) => selectSelfSocketId(state, projectId));
 
@@ -102,11 +108,12 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
 
   const { remoteSelections } = useCanvasRoom(projectId);
   const { addElement, previewElement, commitElement, removeElements, reorderElements, setSelection } =
-    useElementMutations(projectId, canEdit);
+    useElementMutations(projectId, canvasId, canEdit);
+  const slideMutations = useSlideMutations(projectId, canEdit);
 
   const selection = useAppSelector((state: RootState) =>
     selectedIds
-      .map((elementId) => selectElement(state, projectId, elementId))
+      .map((elementId) => selectElement(state, canvasId, elementId))
       .filter((element): element is TCanvasElement => element !== null),
   );
 
@@ -136,7 +143,7 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
     (width: number, height: number, preset: TAspectRatioPreset) => {
       socketService.emit(
         SOCKET_EVENT.CLIENT.CANVAS_RESIZE,
-        { projectId, width, height, aspectRatioPreset: preset },
+        { projectId, canvasId, width, height, aspectRatioPreset: preset },
         (result) => {
           if (!result.ok) {
             utils.toast.error(result.error);
@@ -149,11 +156,11 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
            * without this the resizing user is the one person who never sees
            * their own resize.
            */
-          dispatch(canvasReplaced({ projectId, canvas: result.data.canvas }));
+          dispatch(canvasReplaced({ canvasId, canvas: result.data.canvas }));
         },
       );
     },
-    [dispatch, projectId],
+    [dispatch, projectId, canvasId],
   );
 
   const handleBackgroundChange = useCallback(
@@ -161,15 +168,15 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
       // Background has no socket event of its own — the REST path writes through
       // the same server cache and broadcasts the result to live editors.
       void canvasService
-        .updateCanvas(projectId, { backgroundColor: color })
+        .updateSlide(projectId, canvasId, { backgroundColor: color })
         .then((updated) => {
-          dispatch(canvasReplaced({ projectId, canvas: updated }));
+          dispatch(canvasReplaced({ canvasId, canvas: updated }));
         })
         .catch((updateError: unknown) => {
           utils.toast.error(updateError instanceof Error ? updateError.message : "Failed to update background");
         });
     },
-    [dispatch, projectId],
+    [dispatch, projectId, canvasId],
   );
 
   // Delete / Escape, and arrow-key nudging.
@@ -226,20 +233,19 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
     [canvas, canEdit, handleResize, handleBackgroundChange],
   );
 
-  if (!canvas || !canvasSizeProps) {
+  if (!canvas || !canvasSizeProps || !activeCanvasId) {
     return <Skeleton active className={styles["project-page"] ?? ""} data-testid="canvas-loading" />;
   }
 
   return (
     <Flex vertical className={styles["editor"] ?? ""} data-testid="project-page">
-      {!canEdit && <ViewerNotice />}
-
       <div className={styles["editor-body"] ?? ""}>
         <ElementsPanel canEdit={canEdit} onAdd={handleAdd} />
 
         <Suspense fallback={<Skeleton active className={styles["stage-fallback"] ?? ""} />}>
           <CanvasStage
             projectId={projectId}
+            canvasId={activeCanvasId}
             canvas={canvas}
             canEdit={canEdit}
             selectedIds={selectedIds}
@@ -261,6 +267,8 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
           canvasSizeProps={canvasSizeProps}
         />
       </div>
+
+      <SlideStrip projectId={projectId} activeCanvasId={activeCanvasId} canEdit={canEdit} mutations={slideMutations} />
 
       <div className={styles["editor-status"] ?? ""}>
         <SyncIndicator status={syncStatus} pendingCount={pendingCount} />

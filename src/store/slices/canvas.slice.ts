@@ -7,6 +7,7 @@ import { REQUEST_STATUS, type TRequestStatus } from "./request-status";
 
 export { REQUEST_STATUS, type TRequestStatus };
 
+/** One slide's live editing state. Entities are keyed by `canvasId`, not `projectId` — a project can hold many. */
 type TCanvasEntity = {
   canvas: TCanvas | null;
   byId: Record<string, TCanvasElement>;
@@ -28,6 +29,7 @@ type TCanvasEntity = {
 };
 
 type TCanvasState = {
+  /** Keyed by canvasId. */
   entities: Record<string, TCanvasEntity>;
 };
 
@@ -47,8 +49,7 @@ const createEntity = (): TCanvasEntity => ({
   revision: 0,
 });
 
-const getEntity = (state: TCanvasState, projectId: string): TCanvasEntity =>
-  state.entities[projectId] ?? createEntity();
+const getEntity = (state: TCanvasState, canvasId: string): TCanvasEntity => state.entities[canvasId] ?? createEntity();
 
 /** Keeps `order` sorted by zIndex, then by id so the sort is stable across peers. */
 const sortOrder = (entity: TCanvasEntity): void => {
@@ -64,22 +65,26 @@ const sortOrder = (entity: TCanvasEntity): void => {
   });
 };
 
-export const fetchCanvas = createAsyncThunk("canvas/fetchCanvas", async (projectId: string) => {
-  const state = await canvasService.getCanvas(projectId);
-  return { projectId, ...state };
-});
+/** Lazy per-slide fetch — the fallback for a slide whose elements weren't in the join ack. */
+export const fetchSlideElements = createAsyncThunk(
+  "canvas/fetchSlideElements",
+  async ({ projectId, canvasId }: { projectId: string; canvasId: string }) => {
+    const state = await canvasService.getSlide(projectId, canvasId);
+    return { canvasId, ...state };
+  },
+);
 
 const canvasSlice = createSlice({
   name: "canvas",
   initialState,
   reducers: {
-    /** Full authoritative state, from the join ack or a reconnect. */
+    /** Full authoritative state, from the join ack, `slide:activate`, or a reconnect. */
     canvasHydrated: (
       state,
-      action: PayloadAction<{ projectId: string; canvas: TCanvas; elements: TCanvasElement[] }>,
+      action: PayloadAction<{ canvasId: string; canvas: TCanvas; elements: TCanvasElement[] }>,
     ) => {
-      const { projectId, canvas, elements } = action.payload;
-      const entity = getEntity(state, projectId);
+      const { canvasId, canvas, elements } = action.payload;
+      const entity = getEntity(state, canvasId);
 
       entity.canvas = canvas;
       entity.byId = Object.fromEntries(elements.map((element) => [element.elementId, element]));
@@ -91,12 +96,12 @@ const canvasSlice = createSlice({
       entity.revision += 1;
       sortOrder(entity);
 
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    elementUpserted: (state, action: PayloadAction<{ projectId: string; element: TCanvasElement }>) => {
-      const { projectId, element } = action.payload;
-      const entity = getEntity(state, projectId);
+    elementUpserted: (state, action: PayloadAction<{ canvasId: string; element: TCanvasElement }>) => {
+      const { canvasId, element } = action.payload;
+      const entity = getEntity(state, canvasId);
       const isNew = entity.byId[element.elementId] === undefined;
 
       entity.byId[element.elementId] = element;
@@ -107,15 +112,15 @@ const canvasSlice = createSlice({
       }
 
       sortOrder(entity);
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
     elementPatched: (
       state,
-      action: PayloadAction<{ projectId: string; elementId: string; patch: TElementPatch; version: number }>,
+      action: PayloadAction<{ canvasId: string; elementId: string; patch: TElementPatch; version: number }>,
     ) => {
-      const { projectId, elementId, patch, version } = action.payload;
-      const entity = getEntity(state, projectId);
+      const { canvasId, elementId, patch, version } = action.payload;
+      const entity = getEntity(state, canvasId);
       const existing = entity.byId[elementId];
 
       if (!existing) {
@@ -138,13 +143,13 @@ const canvasSlice = createSlice({
       if (patch.props !== undefined) existing.props = patch.props;
 
       existing.version = version;
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
     /** Authoritative element after losing a version race — overwrites unconditionally. */
-    elementSynced: (state, action: PayloadAction<{ projectId: string; element: TCanvasElement }>) => {
-      const { projectId, element } = action.payload;
-      const entity = getEntity(state, projectId);
+    elementSynced: (state, action: PayloadAction<{ canvasId: string; element: TCanvasElement }>) => {
+      const { canvasId, element } = action.payload;
+      const entity = getEntity(state, canvasId);
 
       entity.byId[element.elementId] = element;
 
@@ -154,12 +159,12 @@ const canvasSlice = createSlice({
       }
 
       sortOrder(entity);
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    elementsRemoved: (state, action: PayloadAction<{ projectId: string; elementIds: string[] }>) => {
-      const { projectId, elementIds } = action.payload;
-      const entity = getEntity(state, projectId);
+    elementsRemoved: (state, action: PayloadAction<{ canvasId: string; elementIds: string[] }>) => {
+      const { canvasId, elementIds } = action.payload;
+      const entity = getEntity(state, canvasId);
       const removed = new Set(elementIds);
 
       elementIds.forEach((elementId) => {
@@ -170,12 +175,12 @@ const canvasSlice = createSlice({
       entity.selectedIds = entity.selectedIds.filter((elementId) => !removed.has(elementId));
       entity.revision += 1;
 
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    elementsReordered: (state, action: PayloadAction<{ projectId: string; order: TElementOrderEntry[] }>) => {
-      const { projectId, order } = action.payload;
-      const entity = getEntity(state, projectId);
+    elementsReordered: (state, action: PayloadAction<{ canvasId: string; order: TElementOrderEntry[] }>) => {
+      const { canvasId, order } = action.payload;
+      const entity = getEntity(state, canvasId);
 
       order.forEach(({ elementId, zIndex }) => {
         const element = entity.byId[elementId];
@@ -186,45 +191,45 @@ const canvasSlice = createSlice({
       });
 
       sortOrder(entity);
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    canvasReplaced: (state, action: PayloadAction<{ projectId: string; canvas: TCanvas }>) => {
-      const { projectId, canvas } = action.payload;
-      const entity = getEntity(state, projectId);
+    canvasReplaced: (state, action: PayloadAction<{ canvasId: string; canvas: TCanvas }>) => {
+      const { canvasId, canvas } = action.payload;
+      const entity = getEntity(state, canvasId);
 
       entity.canvas = canvas;
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    selectionChanged: (state, action: PayloadAction<{ projectId: string; elementIds: string[] }>) => {
-      const { projectId, elementIds } = action.payload;
-      const entity = getEntity(state, projectId);
+    selectionChanged: (state, action: PayloadAction<{ canvasId: string; elementIds: string[] }>) => {
+      const { canvasId, elementIds } = action.payload;
+      const entity = getEntity(state, canvasId);
 
       entity.selectedIds = elementIds;
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    syncStatusChanged: (state, action: PayloadAction<{ projectId: string; syncStatus: TSyncStatus }>) => {
-      const { projectId, syncStatus } = action.payload;
-      const entity = getEntity(state, projectId);
+    syncStatusChanged: (state, action: PayloadAction<{ canvasId: string; syncStatus: TSyncStatus }>) => {
+      const { canvasId, syncStatus } = action.payload;
+      const entity = getEntity(state, canvasId);
 
       entity.syncStatus = syncStatus;
-      state.entities[projectId] = entity;
+      state.entities[canvasId] = entity;
     },
 
-    pendingIncremented: (state, action: PayloadAction<{ projectId: string }>) => {
-      const entity = getEntity(state, action.payload.projectId);
+    pendingIncremented: (state, action: PayloadAction<{ canvasId: string }>) => {
+      const entity = getEntity(state, action.payload.canvasId);
 
       entity.pendingCount += 1;
-      state.entities[action.payload.projectId] = entity;
+      state.entities[action.payload.canvasId] = entity;
     },
 
-    pendingDecremented: (state, action: PayloadAction<{ projectId: string }>) => {
-      const entity = getEntity(state, action.payload.projectId);
+    pendingDecremented: (state, action: PayloadAction<{ canvasId: string }>) => {
+      const entity = getEntity(state, action.payload.canvasId);
 
       entity.pendingCount = Math.max(0, entity.pendingCount - 1);
-      state.entities[action.payload.projectId] = entity;
+      state.entities[action.payload.canvasId] = entity;
     },
 
     canvasReset: (state, action: PayloadAction<string>) => {
@@ -233,15 +238,15 @@ const canvasSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCanvas.pending, (state, action) => {
-        const entity = getEntity(state, action.meta.arg);
+      .addCase(fetchSlideElements.pending, (state, action) => {
+        const entity = getEntity(state, action.meta.arg.canvasId);
         entity.status = REQUEST_STATUS.LOADING;
         entity.error = null;
-        state.entities[action.meta.arg] = entity;
+        state.entities[action.meta.arg.canvasId] = entity;
       })
-      .addCase(fetchCanvas.fulfilled, (state, action) => {
-        const { projectId, canvas, elements } = action.payload;
-        const entity = getEntity(state, projectId);
+      .addCase(fetchSlideElements.fulfilled, (state, action) => {
+        const { canvasId, canvas, elements } = action.payload;
+        const entity = getEntity(state, canvasId);
 
         entity.canvas = canvas;
         entity.byId = Object.fromEntries(elements.map((element) => [element.elementId, element]));
@@ -251,13 +256,13 @@ const canvasSlice = createSlice({
         entity.revision += 1;
         sortOrder(entity);
 
-        state.entities[projectId] = entity;
+        state.entities[canvasId] = entity;
       })
-      .addCase(fetchCanvas.rejected, (state, action) => {
-        const entity = getEntity(state, action.meta.arg);
+      .addCase(fetchSlideElements.rejected, (state, action) => {
+        const entity = getEntity(state, action.meta.arg.canvasId);
         entity.status = REQUEST_STATUS.FAILED;
-        entity.error = action.error.message ?? "Failed to load canvas";
-        state.entities[action.meta.arg] = entity;
+        entity.error = action.error.message ?? "Failed to load slide";
+        state.entities[action.meta.arg.canvasId] = entity;
       });
   },
 });
@@ -285,31 +290,34 @@ export const {
  */
 const EMPTY_IDS: readonly string[] = Object.freeze([]);
 
-export const selectCanvas = (state: RootState, projectId: string): TCanvas | null =>
-  state.canvas.entities[projectId]?.canvas ?? null;
+export const selectCanvas = (state: RootState, canvasId: string): TCanvas | null =>
+  state.canvas.entities[canvasId]?.canvas ?? null;
 
-export const selectCanvasStatus = (state: RootState, projectId: string): TRequestStatus =>
-  state.canvas.entities[projectId]?.status ?? REQUEST_STATUS.IDLE;
+export const selectCanvasStatus = (state: RootState, canvasId: string): TRequestStatus =>
+  state.canvas.entities[canvasId]?.status ?? REQUEST_STATUS.IDLE;
 
-export const selectCanvasError = (state: RootState, projectId: string): string | null =>
-  state.canvas.entities[projectId]?.error ?? null;
+export const selectCanvasError = (state: RootState, canvasId: string): string | null =>
+  state.canvas.entities[canvasId]?.error ?? null;
 
-export const selectElementOrder = (state: RootState, projectId: string): readonly string[] =>
-  state.canvas.entities[projectId]?.order ?? EMPTY_IDS;
+export const selectElementOrder = (state: RootState, canvasId: string): readonly string[] =>
+  state.canvas.entities[canvasId]?.order ?? EMPTY_IDS;
 
-export const selectElement = (state: RootState, projectId: string, elementId: string): TCanvasElement | null =>
-  state.canvas.entities[projectId]?.byId[elementId] ?? null;
+export const selectElement = (state: RootState, canvasId: string, elementId: string): TCanvasElement | null =>
+  state.canvas.entities[canvasId]?.byId[elementId] ?? null;
 
-export const selectSelectedIds = (state: RootState, projectId: string): readonly string[] =>
-  state.canvas.entities[projectId]?.selectedIds ?? EMPTY_IDS;
+export const selectSelectedIds = (state: RootState, canvasId: string): readonly string[] =>
+  state.canvas.entities[canvasId]?.selectedIds ?? EMPTY_IDS;
 
-export const selectSyncStatus = (state: RootState, projectId: string): TSyncStatus =>
-  state.canvas.entities[projectId]?.syncStatus ?? SYNC_STATUS.SYNCED;
+export const selectSyncStatus = (state: RootState, canvasId: string): TSyncStatus =>
+  state.canvas.entities[canvasId]?.syncStatus ?? SYNC_STATUS.SYNCED;
 
-export const selectPendingCount = (state: RootState, projectId: string): number =>
-  state.canvas.entities[projectId]?.pendingCount ?? 0;
+export const selectPendingCount = (state: RootState, canvasId: string): number =>
+  state.canvas.entities[canvasId]?.pendingCount ?? 0;
 
-export const selectCanvasRevision = (state: RootState, projectId: string): number =>
-  state.canvas.entities[projectId]?.revision ?? 0;
+export const selectCanvasRevision = (state: RootState, canvasId: string): number =>
+  state.canvas.entities[canvasId]?.revision ?? 0;
+
+export const selectHasSlideEntity = (state: RootState, canvasId: string): boolean =>
+  state.canvas.entities[canvasId] !== undefined;
 
 export default canvasSlice.reducer;

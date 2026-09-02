@@ -56,12 +56,6 @@ export const toCanvasPoint = (stage: Konva.Stage): TPoint | null => {
   return { x, y };
 };
 
-/** Keeps an element's box inside the workspace. */
-export const clampToCanvas = (position: TPoint, size: TSize, canvas: TSize): TPoint => ({
-  x: clamp(position.x, 0, Math.max(0, canvas.width - size.width)),
-  y: clamp(position.y, 0, Math.max(0, canvas.height - size.height)),
-});
-
 /** Per-type extra props for a newly inserted element. */
 const defaultPropsFor = (type: TElementType, size: TSize): TElementProps => {
   switch (type) {
@@ -144,13 +138,17 @@ export const createElementInput = (
  * so under `exactOptionalPropertyTypes` passing an explicit `undefined` is a
  * type error. Building the config by conditional spread here keeps every
  * primitive branch free of that guard noise.
+ *
+ * Opacity is deliberately absent here: `ElementNode` already applies
+ * `element.opacity` to the wrapping `Group`, and Konva compounds a parent's
+ * opacity with a child's multiplicatively. Setting it again on the shape
+ * would silently square it (0.5 -> 0.25 on screen).
  */
 export const toKonvaStyle = (element: TCanvasElement): Konva.ShapeConfig => ({
   ...(element.fill !== null ? { fill: element.fill } : {}),
   ...(element.stroke !== null && element.strokeWidth > 0
     ? { stroke: element.stroke, strokeWidth: element.strokeWidth }
     : {}),
-  opacity: element.opacity,
   // Keeps stroke weight constant while the transformer scales the node, so the
   // border doesn't visibly fatten mid-resize and snap back on release.
   strokeScaleEnabled: false,

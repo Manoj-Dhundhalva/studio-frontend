@@ -43,8 +43,16 @@ type TUseElementMutationsResult = {
  * immediately and reconciles against the ack. A rejected mutation — most
  * importantly a demotion landing mid-drag — is rolled back from a snapshot
  * taken before the gesture started.
+ *
+ * Scoped to one slide (`canvasId`) — `projectId` is still needed for the
+ * socket payload (every mutation is validated against it server-side), but
+ * all Redux reads/writes key off `canvasId`, since a project can hold many.
  */
-export const useElementMutations = (projectId: string, canEdit: boolean): TUseElementMutationsResult => {
+export const useElementMutations = (
+  projectId: string,
+  canvasId: string,
+  canEdit: boolean,
+): TUseElementMutationsResult => {
   const dispatch = useAppDispatch();
   const store = useStore<RootState>();
 
@@ -64,16 +72,16 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
 
   const handleFailure = useCallback(
     (elementId: string | null, result: Extract<TAck<unknown>, { ok: false }>) => {
-      dispatch(pendingDecremented({ projectId }));
+      dispatch(pendingDecremented({ canvasId }));
 
       if (elementId !== null) {
         const snapshot = rollbackRef.current.get(elementId);
 
         if (snapshot === null) {
           // There was nothing there before — undo the optimistic insert.
-          dispatch(elementsRemoved({ projectId, elementIds: [elementId] }));
+          dispatch(elementsRemoved({ canvasId, elementIds: [elementId] }));
         } else if (snapshot !== undefined) {
-          dispatch(elementSynced({ projectId, element: snapshot }));
+          dispatch(elementSynced({ canvasId, element: snapshot }));
         }
 
         rollbackRef.current.delete(elementId);
@@ -83,7 +91,7 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
         // Flip the UI to read-only right away, then explain. The server has
         // already refused, so the local role is what's stale.
         dispatch(projectAccessibilitySet({ projectId, accessibility: "viewer" }));
-        dispatch(selectionChanged({ projectId, elementIds: [] }));
+        dispatch(selectionChanged({ canvasId, elementIds: [] }));
         utils.toast.error("Your access changed to view-only. That change was not saved.");
         return;
       }
@@ -96,13 +104,13 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
 
       utils.toast.error(result.error);
     },
-    [dispatch, projectId],
+    [dispatch, projectId, canvasId],
   );
 
   const onSettled = useCallback(
     (elementId: string | null, result: TAck<unknown>) => {
       if (result.ok) {
-        dispatch(pendingDecremented({ projectId }));
+        dispatch(pendingDecremented({ canvasId }));
 
         if (elementId !== null) {
           rollbackRef.current.delete(elementId);
@@ -113,7 +121,7 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
 
       handleFailure(elementId, result);
     },
-    [dispatch, projectId, handleFailure],
+    [dispatch, canvasId, handleFailure],
   );
 
   const addElement = useCallback(
@@ -125,7 +133,7 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
 
       const optimistic: TCanvasElement = {
         elementId: input.elementId,
-        canvasId: "",
+        canvasId,
         type: input.type,
         x: input.x,
         y: input.y,
@@ -149,26 +157,26 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
       // restoring a phantom.
       rollbackRef.current.set(input.elementId, null);
 
-      dispatch(elementUpserted({ projectId, element: optimistic }));
-      dispatch(selectionChanged({ projectId, elementIds: [input.elementId] }));
-      dispatch(pendingIncremented({ projectId }));
+      dispatch(elementUpserted({ canvasId, element: optimistic }));
+      dispatch(selectionChanged({ canvasId, elementIds: [input.elementId] }));
+      dispatch(pendingIncremented({ canvasId }));
 
-      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_CREATE, { projectId, element: input }, (result) => {
+      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_CREATE, { projectId, canvasId, element: input }, (result) => {
         if (result.ok) {
           // Adopt the server's row: it carries the authoritative canvasId and
           // zIndex.
-          dispatch(elementUpserted({ projectId, element: result.data.element }));
+          dispatch(elementUpserted({ canvasId, element: result.data.element }));
         }
 
         onSettled(input.elementId, result);
       });
     },
-    [dispatch, projectId, onSettled],
+    [dispatch, projectId, canvasId, onSettled],
   );
 
   const sendUpdate = useCallback(
     (elementId: string, patch: TElementPatch, isPending: boolean) => {
-      const current = selectElement(store.getState(), projectId, elementId);
+      const current = selectElement(store.getState(), canvasId, elementId);
 
       if (!current) {
         return;
@@ -180,26 +188,30 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
 
       const baseVersion = current.version;
 
-      dispatch(elementPatched({ projectId, elementId, patch, version: baseVersion + 1 }));
+      dispatch(elementPatched({ canvasId, elementId, patch, version: baseVersion + 1 }));
 
       if (isPending) {
-        dispatch(pendingIncremented({ projectId }));
+        dispatch(pendingIncremented({ canvasId }));
       }
 
-      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_UPDATE, { projectId, elementId, baseVersion, patch }, (result) => {
-        if (isPending) {
-          onSettled(elementId, result);
-          return;
-        }
+      socketService.emit(
+        SOCKET_EVENT.CLIENT.ELEMENT_UPDATE,
+        { projectId, canvasId, elementId, baseVersion, patch },
+        (result) => {
+          if (isPending) {
+            onSettled(elementId, result);
+            return;
+          }
 
-        // Preview frames don't hold a pending slot, but a FORBIDDEN mid-drag
-        // still has to flip the UI to read-only.
-        if (!result.ok && result.code === SOCKET_ERROR_CODE.FORBIDDEN) {
-          dispatch(projectAccessibilitySet({ projectId, accessibility: "viewer" }));
-        }
-      });
+          // Preview frames don't hold a pending slot, but a FORBIDDEN mid-drag
+          // still has to flip the UI to read-only.
+          if (!result.ok && result.code === SOCKET_ERROR_CODE.FORBIDDEN) {
+            dispatch(projectAccessibilitySet({ projectId, accessibility: "viewer" }));
+          }
+        },
+      );
     },
-    [dispatch, projectId, store, onSettled],
+    [dispatch, projectId, canvasId, store, onSettled],
   );
 
   /**
@@ -273,24 +285,24 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
 
       const state = store.getState();
       const snapshots = elementIds
-        .map((elementId) => selectElement(state, projectId, elementId))
+        .map((elementId) => selectElement(state, canvasId, elementId))
         .filter((element): element is TCanvasElement => element !== null);
 
-      dispatch(elementsRemoved({ projectId, elementIds }));
-      dispatch(pendingIncremented({ projectId }));
+      dispatch(elementsRemoved({ canvasId, elementIds }));
+      dispatch(pendingIncremented({ canvasId }));
 
-      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_DELETE, { projectId, elementIds }, (result) => {
+      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_DELETE, { projectId, canvasId, elementIds }, (result) => {
         if (result.ok) {
-          dispatch(pendingDecremented({ projectId }));
+          dispatch(pendingDecremented({ canvasId }));
           return;
         }
 
         // Restore everything that was optimistically removed.
-        snapshots.forEach((element) => dispatch(elementSynced({ projectId, element })));
+        snapshots.forEach((element) => dispatch(elementSynced({ canvasId, element })));
         handleFailure(null, result);
       });
     },
-    [dispatch, projectId, store, handleFailure],
+    [dispatch, projectId, canvasId, store, handleFailure],
   );
 
   const reorderElements = useCallback(
@@ -299,24 +311,24 @@ export const useElementMutations = (projectId: string, canEdit: boolean): TUseEl
         return;
       }
 
-      dispatch(elementsReordered({ projectId, order }));
-      dispatch(pendingIncremented({ projectId }));
+      dispatch(elementsReordered({ canvasId, order }));
+      dispatch(pendingIncremented({ canvasId }));
 
-      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_REORDER, { projectId, order }, (result) => {
+      socketService.emit(SOCKET_EVENT.CLIENT.ELEMENT_REORDER, { projectId, canvasId, order }, (result) => {
         onSettled(null, result);
       });
     },
-    [dispatch, projectId, onSettled],
+    [dispatch, projectId, canvasId, onSettled],
   );
 
   const setSelection = useCallback(
     (elementIds: string[]) => {
-      dispatch(selectionChanged({ projectId, elementIds }));
+      dispatch(selectionChanged({ canvasId, elementIds }));
       // Viewers broadcast selection too — it's not a mutation, and seeing what
       // a reviewer is looking at is useful.
       socketService.emit(SOCKET_EVENT.CLIENT.SELECTION_CHANGE, { projectId, elementIds });
     },
-    [dispatch, projectId],
+    [dispatch, projectId, canvasId],
   );
 
   return { addElement, previewElement, commitElement, removeElements, reorderElements, setSelection };

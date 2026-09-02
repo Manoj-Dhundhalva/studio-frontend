@@ -34,9 +34,12 @@ function ImagePrimitive({ element }: TElementPrimitiveProps) {
       image={image}
       width={element.width}
       height={element.height}
-      opacity={element.opacity}
       perfectDrawEnabled={false}
+      strokeScaleEnabled={false}
       {...(element.cornerRadius > 0 ? { cornerRadius: element.cornerRadius } : {})}
+      {...(element.stroke !== null && element.strokeWidth > 0
+        ? { stroke: element.stroke, strokeWidth: element.strokeWidth }
+        : {})}
     />
   );
 }
@@ -138,7 +141,6 @@ function ElementPrimitive({ element }: TElementPrimitiveProps) {
           fontSize={Math.min(width, height) * 0.8}
           align="center"
           verticalAlign="middle"
-          opacity={element.opacity}
         />
       );
 

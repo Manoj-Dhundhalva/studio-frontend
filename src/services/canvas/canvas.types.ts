@@ -64,10 +64,13 @@ export const CanvasSchema = z.object({
   aspectRatioPreset: AspectRatioPresetSchema.nullable(),
   backgroundColor: z.string(),
   version: z.number(),
+  /** Position among a project's slides. */
+  orderIndex: z.number(),
 });
 
 export type TCanvas = z.infer<typeof CanvasSchema>;
 
+/** One slide's full state, as returned by `GET /projects/:projectId/slides/:canvasId`. */
 export const CanvasStateSchema = z.object({
   canvas: CanvasSchema,
   elements: z.array(CanvasElementSchema),
@@ -75,6 +78,16 @@ export const CanvasStateSchema = z.object({
 });
 
 export type TCanvasState = z.infer<typeof CanvasStateSchema>;
+
+/** Every slide's metadata plus the active one's elements, as returned by `GET /projects/:projectId/slides`. */
+export const SlidesStateSchema = z.object({
+  slides: z.array(CanvasSchema),
+  activeCanvasId: z.string(),
+  elements: z.array(CanvasElementSchema),
+  accessibility: ProjectMemberRoleSchema,
+});
+
+export type TSlidesState = z.infer<typeof SlidesStateSchema>;
 
 export const CanvasUpdateResponseSchema = z.object({
   canvas: CanvasSchema,
@@ -119,6 +132,8 @@ export type TElementCreateInput = {
 };
 
 export type TElementOrderEntry = { elementId: string; zIndex: number };
+
+export type TSlideOrderEntry = { canvasId: string; orderIndex: number };
 
 export type TPoint = { x: number; y: number };
 

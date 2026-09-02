@@ -3,6 +3,7 @@ import userReducer from "./slices/user.slice";
 import projectsReducer from "./slices/project.slice";
 import membersReducer from "./slices/members.slice";
 import canvasReducer from "./slices/canvas.slice";
+import slidesReducer from "./slices/slides.slice";
 import presenceReducer from "./slices/presence.slice";
 
 export const store = configureStore({
@@ -11,6 +12,7 @@ export const store = configureStore({
     projects: projectsReducer,
     members: membersReducer,
     canvas: canvasReducer,
+    slides: slidesReducer,
     presence: presenceReducer,
   },
 });
