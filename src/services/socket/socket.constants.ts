@@ -26,6 +26,7 @@ export const SOCKET_EVENT = {
     PRESENCE_ACTIVE_SLIDE_CHANGED: "presence:activeSlideChanged",
     MEDIA_UPLOADED: "media:uploaded",
     MEDIA_DELETED: "media:deleted",
+    AI_MESSAGE_CREATED: "ai:messageCreated",
     SLIDE_CREATED: "slide:created",
     SLIDE_DUPLICATED: "slide:duplicated",
     SLIDE_REORDERED: "slide:reordered",

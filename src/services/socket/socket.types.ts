@@ -9,6 +9,7 @@ import type {
 } from "@/services/canvas/canvas.types";
 import type { TProjectMemberRole } from "@/services/projects/projects.types";
 import type { TProjectMedia } from "@/services/media/media.types";
+import type { TAiMessage } from "@/services/ai/ai.types";
 import type { TSocketErrorCode } from "./socket.constants";
 
 /** Mirror of `canva-backend/src/socket/socket.types.ts`. Change both together. */
@@ -49,6 +50,8 @@ export type TServerToClientEvents = {
 
   "media:uploaded": (payload: { projectId: string; socketId: string; media: TProjectMedia }) => void;
   "media:deleted": (payload: { projectId: string; socketId: string; mediaId: string }) => void;
+
+  "ai:messageCreated": (payload: { projectId: string; socketId: string; message: TAiMessage }) => void;
 
   "slide:created": (payload: {
     projectId: string;

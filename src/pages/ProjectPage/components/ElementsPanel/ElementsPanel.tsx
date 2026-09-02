@@ -8,6 +8,7 @@ import {
   FontSizeOutlined,
   LineOutlined,
   PictureOutlined,
+  RobotOutlined,
   SmileOutlined,
   StarOutlined,
   UploadOutlined,
@@ -15,8 +16,10 @@ import {
 import { ELEMENT_TYPE, EMOJI_ICONS, type TElementType } from "@/services/canvas/canvas.constants";
 import type { TElementProps } from "@/services/canvas/canvas.types";
 import type { TProjectMedia } from "@/services/media/media.types";
+import type { TAiMessage } from "@/services/ai/ai.types";
 import type { TPendingMediaUpload } from "../../hooks/useMediaLibrary.hook";
 import { utils } from "@/utils";
+import AiChatPanel from "./AiChatPanel/AiChatPanel";
 import styles from "./ElementsPanel.module.scss";
 
 export type TElementsPanelProps = {
@@ -27,6 +30,10 @@ export type TElementsPanelProps = {
   pendingUploads: readonly TPendingMediaUpload[];
   onUploadMedia: (file: File) => void;
   onDeleteMedia: (mediaId: string) => Promise<void>;
+  aiMessages: readonly TAiMessage[];
+  isAiLoading: boolean;
+  isAiSending: boolean;
+  onSendAiMessage: (content: string) => void;
 };
 
 type TShapeRow = {
@@ -35,7 +42,7 @@ type TShapeRow = {
   icon: React.ReactNode;
 };
 
-type TToolKey = "shapes" | "text" | "icons" | "image" | "uploads";
+type TToolKey = "shapes" | "text" | "icons" | "image" | "uploads" | "ai";
 
 type TTool = {
   key: TToolKey;
@@ -60,6 +67,7 @@ const TOOLS: TTool[] = [
   { key: "icons", label: "Icons", icon: <SmileOutlined /> },
   { key: "image", label: "Image", icon: <PictureOutlined /> },
   { key: "uploads", label: "Uploads", icon: <UploadOutlined /> },
+  { key: "ai", label: "AI", icon: <RobotOutlined /> },
 ];
 
 const fuzzyMatches = (value: string, query: string): boolean => {
@@ -83,6 +91,10 @@ function ElementsPanel({
   pendingUploads,
   onUploadMedia,
   onDeleteMedia,
+  aiMessages,
+  isAiLoading,
+  isAiSending,
+  onSendAiMessage,
 }: TElementsPanelProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [activeTool, setActiveTool] = useState<TToolKey>("shapes");
@@ -153,7 +165,9 @@ function ElementsPanel({
           ))}
         </nav>
 
-        <div className={styles["tool-content"] ?? ""}>
+        <div
+          className={`${styles["tool-content"] ?? ""} ${activeTool === "ai" ? (styles["tool-content-ai"] ?? "") : ""}`}
+        >
           <Typography.Title level={5} className={styles["title"] ?? ""}>
             {TOOLS.find((tool) => tool.key === activeTool)?.label}
           </Typography.Title>
@@ -339,6 +353,16 @@ function ElementsPanel({
                 </div>
               )}
             </Flex>
+          )}
+
+          {activeTool === "ai" && (
+            <AiChatPanel
+              canEdit={canEdit}
+              messages={aiMessages}
+              isLoading={isAiLoading}
+              isSending={isAiSending}
+              onSend={onSendAiMessage}
+            />
           )}
         </div>
       </div>

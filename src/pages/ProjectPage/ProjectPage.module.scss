@@ -14,6 +14,10 @@
   display: grid;
   /* left rail | stage | right rail */
   grid-template-columns: 232px 1fr 280px;
+  /* Without this, the implicit row defaults to `auto` (grow to fit content),
+     which let a tall left-panel section (e.g. a long AI chat history) push
+     the whole row past the viewport instead of clamping to it. */
+  grid-template-rows: minmax(0, 1fr);
   flex: 1 1 auto;
   /* Load-bearing: lets the grid row shrink so the stage container can be
      measured, instead of growing past the viewport. */

@@ -27,6 +27,7 @@ import { SOCKET_EVENT, socketService } from "@/services/socket";
 import type { RootState } from "@/store/store";
 import { utils } from "@/utils";
 import { buildReorder, createElementInput } from "./ProjectPage.utils";
+import { useAiAssistant } from "./hooks/useAiAssistant.hook";
 import { useCanvasRoom } from "./hooks/useCanvasRoom.hook";
 import { useElementMutations } from "./hooks/useElementMutations.hook";
 import { useMediaLibrary } from "./hooks/useMediaLibrary.hook";
@@ -115,6 +116,12 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
     useElementMutations(projectId, canvasId, canEdit);
   const slideMutations = useSlideMutations(projectId, canEdit);
   const { media, isLoading: isMediaLoading, pendingUploads, uploadMedia, deleteMedia } = useMediaLibrary(projectId);
+  const {
+    messages: aiMessages,
+    isLoading: isAiLoading,
+    isSending: isAiSending,
+    sendMessage: sendAiMessage,
+  } = useAiAssistant(projectId, canvasId);
 
   const selection = useAppSelector((state: RootState) =>
     selectedIds
@@ -253,6 +260,10 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
           pendingUploads={pendingUploads}
           onUploadMedia={uploadMedia}
           onDeleteMedia={deleteMedia}
+          aiMessages={aiMessages}
+          isAiLoading={isAiLoading}
+          isAiSending={isAiSending}
+          onSendAiMessage={sendAiMessage}
         />
 
         <Suspense fallback={<Skeleton active className={styles["stage-fallback"] ?? ""} />}>

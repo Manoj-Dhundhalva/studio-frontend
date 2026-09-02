@@ -36,6 +36,7 @@ import {
 } from "@/store/slices/presence.slice";
 import { memberAccessibilitySet, memberRemoved } from "@/store/slices/members.slice";
 import { mediaAdded, mediaRemoved, mediaReset } from "@/store/slices/media.slice";
+import { aiMessageAdded, aiReset } from "@/store/slices/ai.slice";
 import { projectAccessibilitySet, resetProject } from "@/store/slices/project.slice";
 import { selectCurrentUser } from "@/store/slices/user.slice";
 import type { RootState } from "@/store/store";
@@ -142,6 +143,14 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
       socketService.on(SOCKET_EVENT.SERVER.MEDIA_DELETED, (payload) => {
         if (payload.projectId !== projectId) return;
         dispatch(mediaRemoved({ projectId, mediaId: payload.mediaId }));
+      }),
+    );
+
+    // ------------------------------------------------------------------- ai
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.AI_MESSAGE_CREATED, (payload) => {
+        if (payload.projectId !== projectId) return;
+        dispatch(aiMessageAdded({ projectId, message: payload.message }));
       }),
     );
 
@@ -304,6 +313,7 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
         dispatch(slidesReset(projectId));
         dispatch(presenceReset(projectId));
         dispatch(mediaReset(projectId));
+        dispatch(aiReset(projectId));
         dispatch(resetProject(projectId));
         cursorStore.clear();
 
