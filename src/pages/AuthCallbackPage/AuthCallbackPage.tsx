@@ -12,11 +12,17 @@ import styles from "./AuthCallbackPage.module.scss";
  * The backend redirects here as `#access_token=...` (a fragment, not a query
  * string) so the token never reaches the server in a request log or the
  * `Referer` header of any subsequent navigation.
+ *
+ * Nike's "View & Edit" button also embeds an optional `redirect` param in the
+ * same hash so the callback can land directly on the right project page:
+ *   #access_token=TOKEN&redirect=/project/abc123
  */
-function readAccessToken(hash: string): string | null {
-  const params = new URLSearchParams(hash.replace(/^#/, ""));
-  return params.get("access_token");
+function readHashParams(hash: string): URLSearchParams {
+  return new URLSearchParams(hash.replace(/^#/, ""));
 }
+
+/** Only accept same-origin paths — rules out `//evil.com` or `https://...`. */
+const SAFE_PATH = /^\/(?!\/)/;
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -31,7 +37,8 @@ function AuthCallbackPage() {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const token = readAccessToken(window.location.hash);
+    const params = readHashParams(window.location.hash);
+    const token = params.get("access_token");
 
     if (!token) {
       utils.toast.error("Google sign-in failed. Please try again.");
@@ -41,7 +48,12 @@ function AuthCallbackPage() {
 
     authService.setToken(token);
     void dispatch(fetchCurrentUser());
-    navigate(authService.consumePostLoginRedirect() ?? ROUTE_PATH.HOME.ROOT, { replace: true });
+
+    // Hash-embedded redirect (from Nike "View & Edit") takes priority over
+    // whatever ProtectedRoute stashed in localStorage.
+    const hashRedirect = params.get("redirect");
+    const safePath = hashRedirect && SAFE_PATH.test(hashRedirect) ? hashRedirect : null;
+    navigate(safePath ?? authService.consumePostLoginRedirect() ?? ROUTE_PATH.HOME.ROOT, { replace: true });
   }, [navigate, dispatch]);
 
   return (

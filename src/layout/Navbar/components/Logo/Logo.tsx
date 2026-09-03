@@ -7,7 +7,7 @@ function Logo() {
 
   return (
     <span className={styles["logo"]} onClick={() => navigate("/")}>
-      Canva
+      Titan Studio
     </span>
   );
 }

@@ -28,7 +28,7 @@ function LoginPage() {
     <div className={styles["login-page"]}>
       <div className={styles["card"]}>
         <Typography.Title level={3}>Welcome</Typography.Title>
-        <Typography.Paragraph type="secondary">Sign in to continue to Canva.</Typography.Paragraph>
+        <Typography.Paragraph type="secondary">Sign in to continue to Titan Studio.</Typography.Paragraph>
 
         <Button
           block
