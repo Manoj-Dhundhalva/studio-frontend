@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Arrow, Ellipse, Image as KonvaImage, Line, Rect, RegularPolygon, Star, Text } from "react-konva";
+import { Arrow, Ellipse, Image as KonvaImage, Line, Path, Rect, RegularPolygon, Star, Text } from "react-konva";
 import { DEFAULT_FONT_FAMILY, ELEMENT_TYPE, type TTextAlign } from "@/services/canvas/canvas.constants";
 import type { TCanvasElement } from "@/services/canvas/canvas.types";
 import { useCanvasImage } from "../../hooks/useCanvasImage.hook";
@@ -146,6 +146,55 @@ function ElementPrimitive({ element }: TElementPrimitiveProps) {
 
     case ELEMENT_TYPE.IMAGE:
       return <ImagePrimitive element={element} />;
+
+    case ELEMENT_TYPE.DIAMOND:
+      return <Line points={[width / 2, 0, width, height / 2, width / 2, height, 0, height / 2]} closed {...style} />;
+
+    case ELEMENT_TYPE.PARALLELOGRAM:
+      return <Line points={[width * 0.25, 0, width, 0, width * 0.75, height, 0, height]} closed {...style} />;
+
+    case ELEMENT_TYPE.TRAPEZOID:
+      return <Line points={[width * 0.2, 0, width * 0.8, 0, width, height, 0, height]} closed {...style} />;
+
+    case ELEMENT_TYPE.CROSS:
+      return (
+        <Path
+          data="M 33.33 0 L 66.67 0 L 66.67 33.33 L 100 33.33 L 100 66.67 L 66.67 66.67 L 66.67 100 L 33.33 100 L 33.33 66.67 L 0 66.67 L 0 33.33 L 33.33 33.33 Z"
+          scaleX={width / 100}
+          scaleY={height / 100}
+          {...style}
+        />
+      );
+
+    case ELEMENT_TYPE.HEART:
+      return (
+        <Path
+          data="M 50 95 Q 0 70 0 40 Q 0 5 25 5 Q 38 5 50 20 Q 62 5 75 5 Q 100 5 100 40 Q 100 70 50 95 Z"
+          scaleX={width / 100}
+          scaleY={height / 100}
+          {...style}
+        />
+      );
+
+    case ELEMENT_TYPE.CLOUD:
+      return (
+        <Path
+          data="M 18 72 C 5 72 0 62 0 52 C 0 40 8 33 20 33 C 18 15 30 5 48 5 C 62 5 72 13 74 28 C 82 22 95 25 95 38 C 100 38 100 52 95 58 C 95 70 85 72 73 72 Z"
+          scaleX={width / 100}
+          scaleY={height / 100}
+          {...style}
+        />
+      );
+
+    case ELEMENT_TYPE.CALLOUT:
+      return (
+        <Path
+          data="M 10 0 Q 0 0 0 10 L 0 65 Q 0 75 10 75 L 25 75 L 18 100 L 42 75 L 90 75 Q 100 75 100 65 L 100 10 Q 100 0 90 0 Z"
+          scaleX={width / 100}
+          scaleY={height / 100}
+          {...style}
+        />
+      );
 
     default:
       return null;

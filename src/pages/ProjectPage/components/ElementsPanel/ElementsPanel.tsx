@@ -39,6 +39,7 @@ type TShapeRow = {
   type: TElementType;
   label: string;
   icon: React.ReactNode;
+  props?: TElementProps;
 };
 
 type TToolKey = "shapes" | "text" | "image" | "uploads" | "ai";
@@ -54,8 +55,31 @@ const SHAPE_ROWS: TShapeRow[] = [
   { type: ELEMENT_TYPE.RECT, label: "Rectangle", icon: <BorderOutlined /> },
   { type: ELEMENT_TYPE.ELLIPSE, label: "Circle", icon: <span className={styles["glyph-circle"] ?? ""} /> },
   { type: ELEMENT_TYPE.TRIANGLE, label: "Triangle", icon: <span className={styles["glyph-triangle"] ?? ""} /> },
-  { type: ELEMENT_TYPE.POLYGON, label: "Polygon", icon: <span className={styles["glyph-hexagon"] ?? ""} /> },
+  { type: ELEMENT_TYPE.DIAMOND, label: "Diamond", icon: <span className={styles["glyph-diamond"] ?? ""} /> },
+  {
+    type: ELEMENT_TYPE.PARALLELOGRAM,
+    label: "Parallelogram",
+    icon: <span className={styles["glyph-parallelogram"] ?? ""} />,
+  },
+  { type: ELEMENT_TYPE.TRAPEZOID, label: "Trapezoid", icon: <span className={styles["glyph-trapezoid"] ?? ""} /> },
+  {
+    type: ELEMENT_TYPE.POLYGON,
+    label: "Pentagon",
+    icon: <span className={styles["glyph-pentagon"] ?? ""} />,
+    props: { sides: 5 },
+  },
+  { type: ELEMENT_TYPE.POLYGON, label: "Hexagon", icon: <span className={styles["glyph-hexagon"] ?? ""} /> },
+  {
+    type: ELEMENT_TYPE.POLYGON,
+    label: "Octagon",
+    icon: <span className={styles["glyph-octagon"] ?? ""} />,
+    props: { sides: 8 },
+  },
   { type: ELEMENT_TYPE.STAR, label: "Star", icon: <StarOutlined /> },
+  { type: ELEMENT_TYPE.HEART, label: "Heart", icon: <span className={styles["glyph-heart"] ?? ""} /> },
+  { type: ELEMENT_TYPE.CROSS, label: "Cross", icon: <span className={styles["glyph-cross"] ?? ""} /> },
+  { type: ELEMENT_TYPE.CLOUD, label: "Cloud", icon: <span className={styles["glyph-cloud"] ?? ""} /> },
+  { type: ELEMENT_TYPE.CALLOUT, label: "Callout", icon: <span className={styles["glyph-callout"] ?? ""} /> },
   { type: ELEMENT_TYPE.LINE, label: "Line", icon: <LineOutlined /> },
   { type: ELEMENT_TYPE.ARROW, label: "Arrow", icon: <ArrowRightOutlined /> },
 ];
@@ -179,14 +203,14 @@ function ElementsPanel({
               <Flex vertical gap={2}>
                 {filteredShapes.map((row) => (
                   <Button
-                    key={row.type}
+                    key={`${row.type}-${row.label}`}
                     type="text"
                     block
                     disabled={!canEdit}
                     icon={row.icon}
                     className={styles["row"] ?? ""}
-                    onClick={() => onAdd(row.type)}
-                    data-testid={`add-${row.type}`}
+                    onClick={() => onAdd(row.type, row.props)}
+                    data-testid={`add-${row.label.toLowerCase()}`}
                   >
                     <span className={styles["row-label"] ?? ""}>{row.label}</span>
                   </Button>

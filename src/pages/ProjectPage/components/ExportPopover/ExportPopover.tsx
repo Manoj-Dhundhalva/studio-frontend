@@ -5,6 +5,7 @@ import {
   FileImageOutlined,
   FilePdfOutlined,
   FilePptOutlined,
+  Html5Outlined,
   LoadingOutlined,
 } from "@ant-design/icons";
 
@@ -24,7 +25,7 @@ export type TExportPopoverProps = {
   projectId: string;
 };
 
-type TExportFormat = "png" | "jpeg" | "pdf" | "pptx";
+type TExportFormat = "png" | "jpeg" | "pdf" | "pptx" | "html";
 
 function ExportPopover({ projectId }: TExportPopoverProps) {
   const [open, setOpen] = useState(false);
@@ -70,6 +71,12 @@ function ExportPopover({ projectId }: TExportPopoverProps) {
       if (format === "pptx") {
         await exportService.downloadPptx(projectId, projectName);
         utils.toast.success("Exported as PowerPoint");
+        return;
+      }
+
+      if (format === "html") {
+        await exportAsHtml(slides, projectId, projectName);
+        utils.toast.success("Exported as HTML");
       }
     } catch (error) {
       utils.toast.error(error instanceof Error ? error.message : "Export failed. Please try again.");
@@ -121,6 +128,14 @@ function ExportPopover({ projectId }: TExportPopoverProps) {
         loading={isLoading("pptx")}
         disabled={anyLoading}
         onClick={() => void handleExport("pptx")}
+      />
+      <ExportOption
+        icon={<Html5Outlined />}
+        label="HTML"
+        description={`All ${slides.length} slide${slides.length === 1 ? "" : "s"} · self-contained`}
+        loading={isLoading("html")}
+        disabled={anyLoading}
+        onClick={() => void handleExport("html")}
       />
     </Flex>
   );
@@ -206,6 +221,55 @@ async function exportAsPdf(slides: readonly TCanvas[], projectId: string, projec
   }
 
   doc.save(`${projectName}.pdf`);
+}
+
+async function exportAsHtml(slides: readonly TCanvas[], projectId: string, projectName: string): Promise<void> {
+  if (slides.length === 0) {
+    throw new Error("No slides to export");
+  }
+
+  const slideParts: string[] = [];
+
+  for (const meta of slides) {
+    const { canvas, elements } = await canvasService.getSlide(projectId, meta.canvasId);
+    const dataURL = await renderSlideToDataURL(canvas, elements, "image/png", 2);
+    slideParts.push(
+      `<div class="slide" style="width:${canvas.width}px;height:${canvas.height}px"><img src="${dataURL}" width="${canvas.width}" height="${canvas.height}" alt="Slide" /></div>`,
+    );
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${escapeHtml(projectName)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;display:flex;flex-direction:column;align-items:center;padding:32px 16px;gap:24px;font-family:system-ui,sans-serif}
+.slide{box-shadow:0 4px 24px rgba(0,0,0,.4);max-width:100%}
+.slide img{display:block;max-width:100%;height:auto}
+@media print{body{background:#fff;padding:0;gap:0}.slide{box-shadow:none;page-break-after:always}}
+</style>
+</head>
+<body>
+${slideParts.join("\n")}
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${projectName}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 export default memo(ExportPopover);

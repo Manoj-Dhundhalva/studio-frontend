@@ -10,6 +10,13 @@ export const ELEMENT_TYPE = {
   TEXT: "text",
   IMAGE: "image",
   ICON: "icon",
+  DIAMOND: "diamond",
+  HEART: "heart",
+  CROSS: "cross",
+  PARALLELOGRAM: "parallelogram",
+  TRAPEZOID: "trapezoid",
+  CLOUD: "cloud",
+  CALLOUT: "callout",
 } as const;
 
 export type TElementType = (typeof ELEMENT_TYPE)[keyof typeof ELEMENT_TYPE];
@@ -99,6 +106,13 @@ export const ELEMENT_DEFAULT_SIZE: Record<TElementType, { width: number; height:
   [ELEMENT_TYPE.TEXT]: { width: 320, height: 56 },
   [ELEMENT_TYPE.IMAGE]: { width: 320, height: 240 },
   [ELEMENT_TYPE.ICON]: { width: 120, height: 120 },
+  [ELEMENT_TYPE.DIAMOND]: { width: 180, height: 180 },
+  [ELEMENT_TYPE.HEART]: { width: 180, height: 180 },
+  [ELEMENT_TYPE.CROSS]: { width: 160, height: 160 },
+  [ELEMENT_TYPE.PARALLELOGRAM]: { width: 220, height: 140 },
+  [ELEMENT_TYPE.TRAPEZOID]: { width: 220, height: 140 },
+  [ELEMENT_TYPE.CLOUD]: { width: 240, height: 160 },
+  [ELEMENT_TYPE.CALLOUT]: { width: 240, height: 200 },
 };
 
 export const ZOOM = {
