@@ -45,7 +45,8 @@ function AiChatPanel({ canEdit, messages, isLoading, isSending, onSend }: TAiCha
       <div className={styles["messages"] ?? ""} ref={listRef} data-testid="ai-chat-messages">
         {!isLoading && messages.length === 0 && (
           <Typography.Text type="secondary" className={styles["empty"] ?? ""}>
-            Ask AI to help design this slide — try &ldquo;add a blue rectangle in the center&rdquo;.
+            Ask AI to design this slide, or build a whole deck — try &ldquo;make a 10-slide pitch deck for a chat
+            app&rdquo;.
           </Typography.Text>
         )}
 
@@ -86,7 +87,7 @@ function AiChatPanel({ canEdit, messages, isLoading, isSending, onSend }: TAiCha
 
       <Flex gap={6} className={styles["composer"] ?? ""}>
         <Input.TextArea
-          autoSize={{ minRows: 1, maxRows: 4 }}
+          autoSize={{ minRows: 1, maxRows: 6 }}
           placeholder={canEdit ? "Ask AI to change this slide…" : "Viewers cannot use the AI assistant"}
           value={draft}
           disabled={!canEdit || isSending}

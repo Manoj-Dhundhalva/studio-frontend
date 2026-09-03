@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { aiService } from "@/services/ai/ai.service";
 import type { TAiMessage } from "@/services/ai/ai.types";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -21,6 +21,11 @@ type TUseAiAssistantResult = {
   sendMessage: (content: string) => void;
 };
 
+type TUseAiAssistantOptions = {
+  /** Called with the slides a request created, so the editor can jump to them. */
+  onSlidesGenerated?: (canvasIds: string[]) => void;
+};
+
 /**
  * The AI panel's chat history: fetched once per project (like `useMediaLibrary`),
  * then kept live by the `ai:messageCreated` broadcast `useCanvasRoom` already
@@ -28,11 +33,23 @@ type TUseAiAssistantResult = {
  * REST response and the broadcast both land through the same idempotent
  * `aiMessageAdded` reducer, so whichever arrives first wins with no duplicate.
  */
-export const useAiAssistant = (projectId: string, canvasId: string): TUseAiAssistantResult => {
+export const useAiAssistant = (
+  projectId: string,
+  canvasId: string,
+  options?: TUseAiAssistantOptions,
+): TUseAiAssistantResult => {
   const dispatch = useAppDispatch();
   const messages = useAppSelector((state) => selectAiMessages(state, projectId));
   const status = useAppSelector((state) => selectAiStatus(state, projectId));
   const isSending = useAppSelector((state) => selectIsAiSending(state, projectId));
+
+  // Kept in a ref so `sendMessage`'s identity doesn't churn on every render of
+  // a parent that passes an inline callback.
+  const onSlidesGeneratedRef = useRef(options?.onSlidesGenerated);
+
+  useEffect(() => {
+    onSlidesGeneratedRef.current = options?.onSlidesGenerated;
+  }, [options?.onSlidesGenerated]);
 
   useEffect(() => {
     if (status === REQUEST_STATUS.IDLE) {
@@ -52,9 +69,13 @@ export const useAiAssistant = (projectId: string, canvasId: string): TUseAiAssis
 
       void aiService
         .sendMessage(projectId, canvasId, trimmed)
-        .then(({ userMessage, assistantMessage }) => {
+        .then(({ userMessage, assistantMessage, createdCanvasIds }) => {
           dispatch(aiMessageAdded({ projectId, message: userMessage }));
           dispatch(aiMessageAdded({ projectId, message: assistantMessage }));
+
+          if (createdCanvasIds.length > 0) {
+            onSlidesGeneratedRef.current?.(createdCanvasIds);
+          }
         })
         .catch((error: unknown) => {
           utils.toast.error(error instanceof Error ? error.message : "Failed to send message to the AI assistant");

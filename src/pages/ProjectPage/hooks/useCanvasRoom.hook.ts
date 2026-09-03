@@ -171,6 +171,14 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
     );
 
     // --------------------------------------------------------------- slides
+    //
+    // The own-echo guard below (`payload.socketId === socketService.id`) skips
+    // a broadcast the local socket caused, since it already applied that change
+    // optimistically. It deliberately still lets REST-originated broadcasts
+    // through: those carry the `socketId: ""` sentinel, which never equals a
+    // real socket id (nor `null` when disconnected), so slide changes made by
+    // the AI assistant reach every client INCLUDING the requester — which is
+    // required, because the AI path has no local optimistic apply.
     unsubscribers.push(
       socketService.on(SOCKET_EVENT.SERVER.SLIDE_CREATED, (payload) => {
         if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
@@ -205,6 +213,23 @@ export const useCanvasRoom = (projectId: string): { remoteSelections: TRemoteSel
         if (payload.projectId !== projectId || payload.socketId === socketService.id) return;
         dispatch(slideRemoved({ projectId, canvasId: payload.canvasId }));
         dispatch(canvasReset(payload.canvasId));
+      }),
+    );
+
+    // AI-generated slides arrive fully populated. Deliberately NOT filtered on
+    // own-echo: this is REST-originated (`socketId: ""`), so the requester must
+    // apply it too — same as `media:uploaded` and `ai:messageCreated`.
+    unsubscribers.push(
+      socketService.on(SOCKET_EVENT.SERVER.SLIDE_GENERATED, (payload) => {
+        if (payload.projectId !== projectId) return;
+
+        dispatch(slideUpserted({ projectId, slide: payload.slide }));
+        // Seeds the canvas AND its elements in one go, so the new slide's
+        // thumbnail renders immediately instead of sitting on a skeleton.
+        dispatch(
+          canvasHydrated({ canvasId: payload.slide.canvasId, canvas: payload.slide, elements: payload.elements }),
+        );
+        dispatch(slidesReordered({ projectId, order: payload.order }));
       }),
     );
 

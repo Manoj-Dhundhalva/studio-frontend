@@ -3,7 +3,8 @@ import { z } from "zod";
 export const AiMessageSchema = z.object({
   messageId: z.string(),
   projectId: z.string(),
-  canvasId: z.string(),
+  /** Null once the slide the turn was sent against has been deleted. */
+  canvasId: z.string().nullable(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   opsSummary: z.string().nullable(),
@@ -20,4 +21,8 @@ export const AiMessageListSchema = z.object({
 export const SendAiMessageResponseSchema = z.object({
   userMessage: AiMessageSchema,
   assistantMessage: AiMessageSchema,
+  /** Slides the request created, in order — lets the editor jump to the first. */
+  createdCanvasIds: z.array(z.string()).default([]),
+  /** Slides the request deleted. */
+  deletedCanvasIds: z.array(z.string()).default([]),
 });

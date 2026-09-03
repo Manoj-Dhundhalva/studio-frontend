@@ -31,6 +31,7 @@ export const SOCKET_EVENT = {
     SLIDE_DUPLICATED: "slide:duplicated",
     SLIDE_REORDERED: "slide:reordered",
     SLIDE_DELETED: "slide:deleted",
+    SLIDE_GENERATED: "slide:generated",
     ELEMENT_CREATED: "element:created",
     ELEMENT_UPDATED: "element:updated",
     ELEMENT_DELETED: "element:deleted",

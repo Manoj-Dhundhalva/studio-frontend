@@ -6,8 +6,12 @@ const toServiceError = (error: unknown, fallback: string): Error => {
   return new Error(message ?? fallback);
 };
 
-/** Matches the backend's own OpenAI request timeout — longer than the API client's default. */
-const AI_REQUEST_TIMEOUT_MS = 70 * 1000;
+/**
+ * Comfortably above the backend's own 120s OpenAI timeout — generating a whole
+ * deck is a long request, and aborting client-side first would leave the server
+ * still writing slides the user never sees a reply for.
+ */
+const AI_REQUEST_TIMEOUT_MS = 130 * 1000;
 
 class AiService {
   private static instance: AiService;
@@ -30,7 +34,7 @@ class AiService {
     projectId: string,
     canvasId: string,
     content: string,
-  ): Promise<{ userMessage: TAiMessage; assistantMessage: TAiMessage }> => {
+  ): Promise<{ userMessage: TAiMessage; assistantMessage: TAiMessage; createdCanvasIds: string[] }> => {
     try {
       const { data } = await api.post(
         `/projects/${projectId}/ai/messages`,

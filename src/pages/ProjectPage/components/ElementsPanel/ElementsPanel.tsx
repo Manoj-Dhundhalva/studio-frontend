@@ -9,11 +9,10 @@ import {
   LineOutlined,
   PictureOutlined,
   RobotOutlined,
-  SmileOutlined,
   StarOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { ELEMENT_TYPE, EMOJI_ICONS, type TElementType } from "@/services/canvas/canvas.constants";
+import { ELEMENT_TYPE, type TElementType } from "@/services/canvas/canvas.constants";
 import type { TElementProps } from "@/services/canvas/canvas.types";
 import type { TProjectMedia } from "@/services/media/media.types";
 import type { TAiMessage } from "@/services/ai/ai.types";
@@ -42,7 +41,7 @@ type TShapeRow = {
   icon: React.ReactNode;
 };
 
-type TToolKey = "shapes" | "text" | "icons" | "image" | "uploads" | "ai";
+type TToolKey = "shapes" | "text" | "image" | "uploads" | "ai";
 
 type TTool = {
   key: TToolKey;
@@ -64,7 +63,6 @@ const SHAPE_ROWS: TShapeRow[] = [
 const TOOLS: TTool[] = [
   { key: "shapes", label: "Shapes", icon: <AppstoreOutlined /> },
   { key: "text", label: "Text", icon: <FontSizeOutlined /> },
-  { key: "icons", label: "Icons", icon: <SmileOutlined /> },
   { key: "image", label: "Image", icon: <PictureOutlined /> },
   { key: "uploads", label: "Uploads", icon: <UploadOutlined /> },
   { key: "ai", label: "AI", icon: <RobotOutlined /> },
@@ -99,7 +97,6 @@ function ElementsPanel({
   const [imageUrl, setImageUrl] = useState("");
   const [activeTool, setActiveTool] = useState<TToolKey>("shapes");
   const [shapeSearch, setShapeSearch] = useState("");
-  const [iconSearch, setIconSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFilePicked = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,9 +139,6 @@ function ElementsPanel({
   };
 
   const filteredShapes = SHAPE_ROWS.filter((row) => fuzzyMatches(row.label, shapeSearch.trim()));
-  const filteredIcons = EMOJI_ICONS.filter((option) =>
-    fuzzyMatches(`${option.label} ${option.glyph}`, iconSearch.trim()),
-  );
 
   return (
     <div className={styles["panel"] ?? ""} data-testid="elements-panel">
@@ -213,33 +207,6 @@ function ElementsPanel({
             >
               <span className={styles["row-label"] ?? ""}>Add a text box</span>
             </Button>
-          )}
-
-          {activeTool === "icons" && (
-            <Flex vertical gap={8}>
-              <Input
-                size="small"
-                allowClear
-                placeholder="Search icons"
-                value={iconSearch}
-                onChange={(event) => setIconSearch(event.target.value)}
-                data-testid="icon-search"
-              />
-              <div className={styles["emoji-grid"] ?? ""}>
-                {filteredIcons.map(({ glyph, label }) => (
-                  <Button
-                    key={glyph}
-                    type="text"
-                    disabled={!canEdit}
-                    className={styles["emoji-button"] ?? ""}
-                    onClick={() => onAdd(ELEMENT_TYPE.ICON, { text: glyph })}
-                    aria-label={`Add ${label}`}
-                  >
-                    {glyph}
-                  </Button>
-                ))}
-              </div>
-            </Flex>
           )}
 
           {activeTool === "image" && (

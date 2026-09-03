@@ -116,12 +116,26 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
     useElementMutations(projectId, canvasId, canEdit);
   const slideMutations = useSlideMutations(projectId, canEdit);
   const { media, isLoading: isMediaLoading, pendingUploads, uploadMedia, deleteMedia } = useMediaLibrary(projectId);
+  // Jump to the first slide the AI just made, so a deck request visibly lands
+  // instead of leaving the user on an unchanged slide. `slide:generated` has
+  // already hydrated the entity, so this takes the no-round-trip fast path.
+  const handleSlidesGenerated = useCallback(
+    (canvasIds: string[]) => {
+      const [firstCanvasId] = canvasIds;
+
+      if (firstCanvasId) {
+        slideMutations.switchActiveSlide(firstCanvasId);
+      }
+    },
+    [slideMutations],
+  );
+
   const {
     messages: aiMessages,
     isLoading: isAiLoading,
     isSending: isAiSending,
     sendMessage: sendAiMessage,
-  } = useAiAssistant(projectId, canvasId);
+  } = useAiAssistant(projectId, canvasId, { onSlidesGenerated: handleSlidesGenerated });
 
   const selection = useAppSelector((state: RootState) =>
     selectedIds

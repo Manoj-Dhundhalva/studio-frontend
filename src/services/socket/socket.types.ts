@@ -69,6 +69,15 @@ export type TServerToClientEvents = {
   "slide:reordered": (payload: { projectId: string; socketId: string; order: TSlideOrderEntry[] }) => void;
   "slide:deleted": (payload: { projectId: string; socketId: string; canvasId: string }) => void;
 
+  /** An AI-generated slide, already populated — apply as one `canvasHydrated`. */
+  "slide:generated": (payload: {
+    projectId: string;
+    socketId: string;
+    slide: TCanvas;
+    elements: TCanvasElement[];
+    order: TSlideOrderEntry[];
+  }) => void;
+
   "element:created": (payload: {
     projectId: string;
     canvasId: string;
