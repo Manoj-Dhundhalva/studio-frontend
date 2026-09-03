@@ -1,4 +1,4 @@
-import { Suspense, lazy, memo, useCallback, useEffect, useMemo } from "react";
+import { Suspense, lazy, memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button, Flex, Skeleton, Typography } from "antd";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -110,6 +110,34 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
    * refetch. This gates the UI only; the server re-checks every mutation.
    */
   const canEdit = project !== null && project.accessibility !== PROJECT_ROLE.VIEWER;
+
+  const [leftPanelWidth, setLeftPanelWidth] = useState(320);
+
+  const handlePanelResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = leftPanelWidth;
+
+      const onMouseMove = (event: MouseEvent) => {
+        const newWidth = Math.max(220, Math.min(560, startWidth + event.clientX - startX));
+        setLeftPanelWidth(newWidth);
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [leftPanelWidth],
+  );
 
   const { remoteSelections } = useCanvasRoom(projectId);
   const { addElement, previewElement, commitElement, removeElements, reorderElements, setSelection } =
@@ -265,20 +293,23 @@ function ProjectEditorComponent({ projectId }: TProjectEditorProps) {
 
   return (
     <Flex vertical className={styles["editor"] ?? ""} data-testid="project-page">
-      <div className={styles["editor-body"] ?? ""}>
-        <ElementsPanel
-          canEdit={canEdit}
-          onAdd={handleAdd}
-          media={media}
-          isMediaLoading={isMediaLoading}
-          pendingUploads={pendingUploads}
-          onUploadMedia={uploadMedia}
-          onDeleteMedia={deleteMedia}
-          aiMessages={aiMessages}
-          isAiLoading={isAiLoading}
-          isAiSending={isAiSending}
-          onSendAiMessage={sendAiMessage}
-        />
+      <div className={styles["editor-body"] ?? ""} style={{ gridTemplateColumns: `${leftPanelWidth}px 1fr 280px` }}>
+        <div className={styles["left-panel-wrapper"] ?? ""}>
+          <ElementsPanel
+            canEdit={canEdit}
+            onAdd={handleAdd}
+            media={media}
+            isMediaLoading={isMediaLoading}
+            pendingUploads={pendingUploads}
+            onUploadMedia={uploadMedia}
+            onDeleteMedia={deleteMedia}
+            aiMessages={aiMessages}
+            isAiLoading={isAiLoading}
+            isAiSending={isAiSending}
+            onSendAiMessage={sendAiMessage}
+          />
+          <div className={styles["panel-resize-handle"] ?? ""} onMouseDown={handlePanelResizeStart} />
+        </div>
 
         <Suspense fallback={<Skeleton active className={styles["stage-fallback"] ?? ""} />}>
           <CanvasStage

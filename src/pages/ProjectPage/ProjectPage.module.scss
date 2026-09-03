@@ -12,8 +12,8 @@
 
 .editor-body {
   display: grid;
-  /* left rail | stage | right rail */
-  grid-template-columns: 232px 1fr 280px;
+  /* left rail | stage | right rail — left column width is driven by JS state */
+  grid-template-columns: 320px 1fr 280px;
   /* Without this, the implicit row defaults to `auto` (grow to fit content),
      which let a tall left-panel section (e.g. a long AI chat history) push
      the whole row past the viewport instead of clamping to it. */
@@ -23,6 +23,30 @@
      measured, instead of growing past the viewport. */
   min-height: 0;
   width: 100%;
+  /* Needed so the absolutely-positioned resize handle is contained here. */
+  position: relative;
+}
+
+.left-panel-wrapper {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 20;
+  background: transparent;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
 }
 
 .editor-status {
@@ -44,7 +68,7 @@
 
 @media (max-width: 1200px) {
   .editor-body {
-    grid-template-columns: 180px 1fr 240px;
+    grid-template-columns: 280px 1fr 240px;
   }
 }
 

@@ -72,7 +72,6 @@ function SlideStrip({ projectId, activeCanvasId, canEdit, mutations }: TSlideStr
       {canEdit && (
         <Button
           className={styles["add"] ?? ""}
-          type="dashed"
           icon={<PlusOutlined />}
           onClick={() => mutations.addSlide()}
           aria-label="Add slide"
