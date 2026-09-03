@@ -121,7 +121,7 @@ function AddMemberForm({ projectId, existingMemberIds, onDone }: TAddMemberFormP
       {results.map((user) => (
         <Flex key={user.userId} align="center" justify="space-between" gap={8}>
           <Flex align="center" gap={8} className={styles["identity"]}>
-            <Avatar size={24} className={styles["avatar"] ?? ""} src={user.avatar} icon={<UserOutlined />} />
+            <Avatar size={32} className={styles["avatar"] ?? ""} src={user.avatar} icon={<UserOutlined />} />
             <Flex vertical className={styles["names"]}>
               <Typography.Text ellipsis>{user.username}</Typography.Text>
               <Typography.Text type="secondary" ellipsis className={styles["email"] ?? ""}>

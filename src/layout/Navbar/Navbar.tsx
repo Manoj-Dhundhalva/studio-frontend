@@ -12,6 +12,7 @@ import { useAppSelector } from "@/store";
 import { selectProject } from "@/store/slices/project.slice";
 import { PROJECT_ROLE } from "@/services/projects/projects.types";
 import ViewerNotice from "@/pages/ProjectPage/components/ViewerNotice";
+import ExportPopover from "@/pages/ProjectPage/components/ExportPopover";
 
 function Navbar() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -29,7 +30,8 @@ function Navbar() {
             a separate, ephemeral concern from project membership. */}
         <PresenceBar />
         {isViewer && <ViewerNotice />}
-        <UserAvatar />
+        {projectId && <ExportPopover projectId={projectId} />}
+        {!projectId && <UserAvatar />}
         <ProjectMembersPanel />
         <ThemeToggle />
         <LogoutButton />

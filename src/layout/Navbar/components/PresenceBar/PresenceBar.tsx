@@ -28,14 +28,14 @@ function PresenceBar() {
   }
 
   return (
-    <Avatar.Group max={{ count: 5 }} size="small" className={styles["presence"] ?? ""} data-testid="presence-bar">
+    <Avatar.Group max={{ count: 5 }} size={32} className={styles["presence"] ?? ""} data-testid="presence-bar">
       {members.map((member) => {
         const isSelf = member.userId === currentUser?.userId;
 
         return (
           <Tooltip key={member.userId} title={isSelf ? `${member.username} (you)` : member.username}>
             <Avatar
-              size="small"
+              size={28}
               src={member.avatarUrl}
               // The ring is the person's assigned cursor colour, so an avatar
               // here and a pointer on the canvas are visibly the same person.

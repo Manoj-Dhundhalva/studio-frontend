@@ -1,0 +1,32 @@
+.popover-content {
+  min-width: 210px;
+  padding: 4px 0;
+}
+
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 4px;
+  opacity: 0.6;
+}
+
+.divider {
+  margin: 6px 0;
+}
+
+.export-option {
+  justify-content: flex-start;
+  height: auto;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.option-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.option-desc {
+  font-size: 11px;
+}

@@ -17,7 +17,7 @@ function UserAvatar() {
   };
 
   if (status === REQUEST_STATUS.LOADING) {
-    return <Skeleton.Avatar active size="medium" />;
+    return <Skeleton.Avatar active size={32} />;
   }
 
   return (
@@ -35,7 +35,7 @@ function UserAvatar() {
         aria-label={user?.username ? `${user.username}'s profile` : "Profile"}
         data-testid="user-avatar"
       >
-        <Avatar className={styles["avatar"] ?? ""} src={user?.avatarUrl} icon={<UserOutlined />} />
+        <Avatar size={32} className={styles["avatar"] ?? ""} src={user?.avatarUrl} icon={<UserOutlined />} />
       </span>
     </Tooltip>
   );
