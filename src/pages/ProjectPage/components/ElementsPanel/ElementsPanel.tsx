@@ -6,12 +6,13 @@ import {
   BorderOutlined,
   DeleteOutlined,
   FontSizeOutlined,
+  GeminiFilled,
   LineOutlined,
   PictureOutlined,
-  RobotOutlined,
   StarOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
+
 import { ELEMENT_TYPE, type TElementType } from "@/services/canvas/canvas.constants";
 import type { TElementProps } from "@/services/canvas/canvas.types";
 import type { TProjectMedia } from "@/services/media/media.types";
@@ -89,7 +90,7 @@ const TOOLS: TTool[] = [
   { key: "text", label: "Text", icon: <FontSizeOutlined /> },
   { key: "image", label: "Image", icon: <PictureOutlined /> },
   { key: "uploads", label: "Uploads", icon: <UploadOutlined /> },
-  { key: "ai", label: "AI", icon: <RobotOutlined /> },
+  { key: "ai", label: "AI", icon: <GeminiFilled /> },
 ];
 
 const fuzzyMatches = (value: string, query: string): boolean => {
