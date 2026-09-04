@@ -5,6 +5,7 @@ import { Button, Flex, Skeleton, Tag, Typography } from "antd";
 import { FileImageOutlined, PlusOutlined } from "@ant-design/icons";
 import { projectsService } from "@/services/projects";
 import { utils } from "@/utils";
+import ProjectThumbnail from "./ProjectThumbnail";
 import styles from "./HomePage.module.scss";
 
 const SKELETON_CARD_COUNT = 6;
@@ -96,7 +97,7 @@ function HomePage() {
               data-testid="project-item"
             >
               <div className={styles["card-thumb"] ?? ""}>
-                <FileImageOutlined />
+                <ProjectThumbnail projectId={project.projectId} />
               </div>
               <Flex vertical gap={4} className={styles["card-body"] ?? ""}>
                 <Typography.Text strong ellipsis className={styles["card-name"] ?? ""}>

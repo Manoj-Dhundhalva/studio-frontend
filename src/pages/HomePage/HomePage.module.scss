@@ -37,13 +37,9 @@
 }
 
 .card-thumb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  overflow: hidden;
   aspect-ratio: 4 / 3;
-  font-size: 32px;
-  color: var(--app-fg);
-  opacity: 0.25;
   background-color: var(--editor-void-bg);
 }
 
